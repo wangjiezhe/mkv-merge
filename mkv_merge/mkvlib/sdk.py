@@ -292,7 +292,7 @@ def ass2pgs(asses, resolution, frameRate, fontdir, output):
     Returns:
         bool: 是否成功完成。
     """
-    call = lib.Ass2Pgs()
+    call = lib.Ass2Pgs
     _files = dumps(asses)
     call(
         _files.encode(),
