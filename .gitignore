@@ -18,7 +18,7 @@ wheels/
 !.vscode/*.code-snippets
 
 # third-party build file
-src/mkvlib/
+src/mkvlib/*.so
 
 # UV lock file
 uv.lock
