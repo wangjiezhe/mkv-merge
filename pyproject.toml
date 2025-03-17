@@ -14,11 +14,7 @@ build-backend = "hatchling.build"
 [tool.hatch.build.hooks.custom]
 
 [tool.hatch.build.targets.wheel]
-packages = ["src"]
 artifacts = ["**.so"]
-
-[tool.hatch.build.targets.wheel.sources]
-"src" = "mkv_merge"
 
 [tool.hatch.build.targets.sdist]
 exclude = ["third-party"]

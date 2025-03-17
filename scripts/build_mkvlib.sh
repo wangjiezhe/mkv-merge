@@ -10,7 +10,7 @@ LDFLAGS="-s -w"
 ROOT_PATH="$(dirname "$(readlink -f "$0")")/.."
 
 cd "${ROOT_PATH}/third-party/MkvAutoSubset/mkvlib/sdk" || exit 1
-mkdir -p "${ROOT_PATH}/src/mkvlib"
+mkdir -p "${ROOT_PATH}/mkv_merge/mkvlib"
 
 go mod tidy
-go build -ldflags "${LDFLAGS}" -buildmode c-shared -o "${ROOT_PATH}/src/mkvlib/mkvlib.so" && rm "${ROOT_PATH}/src/mkvlib/mkvlib.h"
+go build -ldflags "${LDFLAGS}" -buildmode c-shared -o "${ROOT_PATH}/mkv_merge/mkvlib/mkvlib.so" && rm "${ROOT_PATH}/mkv_merge/mkvlib/mkvlib.h"
