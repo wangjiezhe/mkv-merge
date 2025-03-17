@@ -1,7 +1,8 @@
+import os
 from ctypes import CDLL, CFUNCTYPE, c_byte, c_char_p
 from json import dumps, loads
 
-libpath = "./mkvlib.so"
+libpath = os.path.join(os.path.dirname(__file__), "mkvlib.so")
 lib = CDLL(libpath)
 
 
