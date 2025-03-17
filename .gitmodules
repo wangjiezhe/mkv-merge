@@ -1,0 +1,3 @@
+[submodule "third-party/MkvAutoSubset"]
+	path = third-party/MkvAutoSubset
+	url = https://github.com/MkvAutoSubset/MkvAutoSubset.git

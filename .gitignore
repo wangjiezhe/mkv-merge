@@ -16,3 +16,9 @@ wheels/
 !.vscode/launch.json
 !.vscode/extensions.json
 !.vscode/*.code-snippets
+
+# third-party build file
+src/mkvlib/
+
+# UV lock file
+uv.lock

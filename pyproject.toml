@@ -1,7 +1,24 @@
 [project]
-name = "mkv-merge"
+name = "mkv_merge"
 version = "0.1.0"
 description = "Merge mkv, mka, ass and perform ass font subset"
 readme = "README.md"
 requires-python = ">=3.8"
-dependencies = []
+dependencies = ["hatchling"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+# Used to call hatch_build.py
+[tool.hatch.build.hooks.custom]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src"]
+artifacts = ["src/mkvlib"]
+
+[tool.hatch.build.targets.wheel.sources]
+"src" = "mkv_merge"
+
+[tool.hatch.build.targets.sdist]
+exclude = ["third-party"]
