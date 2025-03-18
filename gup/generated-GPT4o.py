@@ -143,7 +143,7 @@ def remux_with_mkvtoolnix():
                     "mkvpropedit",
                     output_file,
                     "--edit",
-                    f"track:a{track_id}",
+                    f"track:{track_id}",
                     "--set",
                     f"name={name}",
                 ]
@@ -156,7 +156,7 @@ def remux_with_mkvtoolnix():
                     "mkvpropedit",
                     output_file,
                     "--edit",
-                    f"track:a{track_id}",
+                    f"track:{track_id}",
                     "--set",
                     f"flag-default={'1' if is_default else '0'}",
                 ]
@@ -185,7 +185,7 @@ def remux_with_mkvtoolnix():
                     "mkvpropedit",
                     output_file,
                     "--edit",
-                    f"track:s{track_id}",
+                    f"track:{track_id}",
                     "--set",
                     f"flag-default={'1' if is_default else '0'}",
                 ]
