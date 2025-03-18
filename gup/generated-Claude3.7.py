@@ -144,16 +144,10 @@ def process_files():
             for file in subsetted_dir.glob(f"*{ext}"):
                 font_files.append(str(file))
 
-    # 构建mkvmerge命令，使用正确的参数顺序
+    # 构建mkvmerge命令
     cmd = ["mkvmerge", "-o", "dist/PV01.mkv"]
 
-    # 添加视频文件及其轨道选项
-    video_track_options = []
-
-    # 设置音频轨道名称和默认轨道
-    aac_names = ["声优评论", "监督评论", "军事评论"]
-    aac_count = 0
-
+    # 为MKV文件的音频轨道准备命令行参数
     for track in all_audio_tracks:
         if track["file"] == "PV01.mkv":
             track_id = track["id"]
@@ -161,9 +155,9 @@ def process_files():
             # 设置默认轨道
             is_default = track_id == default_audio_track_id
             if is_default:
-                video_track_options.append(f"--default-track={track_id}:yes")
+                cmd.append(f"--default-track={track_id}:yes")
             else:
-                video_track_options.append(f"--default-track={track_id}:no")
+                cmd.append(f"--default-track={track_id}:no")
 
             # 设置轨道名称（如果原来没有名称）
             if not track["name"]:
@@ -179,24 +173,35 @@ def process_files():
                     else:
                         name = f"{channels}ch"
 
-                    video_track_options.append(f"--track-name={track_id}:{name}")
+                    cmd.append(f"--track-name={track_id}:{name}")
 
                 elif track["codec"] == "AAC":
                     # 为AAC轨道设置名称
+                    aac_names = ["声优评论", "监督评论", "军事评论"]
+                    aac_count = sum(
+                        1
+                        for t in all_audio_tracks
+                        if t["file"] == "PV01.mkv"
+                        and t["codec"] == "AAC"
+                        and t["id"] < track_id
+                    )
                     if aac_count < len(aac_names):
-                        video_track_options.append(
-                            f"--track-name={track_id}:{aac_names[aac_count]}"
-                        )
-                        aac_count += 1
+                        cmd.append(f"--track-name={track_id}:{aac_names[aac_count]}")
 
-    # 先添加轨道选项，然后再添加文件名
-    cmd.extend(video_track_options)
+    # 添加主视频文件
     cmd.append("PV01.mkv")
 
-    # 添加MKA文件(如果存在)及其轨道选项
+    # 添加MKA文件(如果存在)
     if os.path.exists("PV01.mka"):
-        mka_track_options = []
+        aac_count_in_mkv = sum(
+            1
+            for t in all_audio_tracks
+            if t["file"] == "PV01.mkv" and t["codec"] == "AAC"
+        )
+        aac_names = ["声优评论", "监督评论", "军事评论"]
 
+        # 准备MKA音频轨道参数
+        mka_cmd = []
         for track in all_audio_tracks:
             if track["file"] == "PV01.mka":
                 track_id = track["id"]
@@ -207,9 +212,9 @@ def process_files():
                     and track["channel_count"] == max_channel_count
                 )
                 if is_default:
-                    mka_track_options.append(f"--default-track={track_id}:yes")
+                    mka_cmd.append(f"--default-track={track_id}:yes")
                 else:
-                    mka_track_options.append(f"--default-track={track_id}:no")
+                    mka_cmd.append(f"--default-track={track_id}:no")
 
                 # 设置轨道名称（如果原来没有名称）
                 if not track["name"]:
@@ -225,47 +230,48 @@ def process_files():
                         else:
                             name = f"{channels}ch"
 
-                        mka_track_options.append(f"--track-name={track_id}:{name}")
+                        mka_cmd.append(f"--track-name={track_id}:{name}")
 
                     elif track["codec"] == "AAC":
                         # 为AAC轨道设置名称
+                        aac_count = aac_count_in_mkv + sum(
+                            1
+                            for t in all_audio_tracks
+                            if t["file"] == "PV01.mka"
+                            and t["codec"] == "AAC"
+                            and t["id"] < track_id
+                        )
                         if aac_count < len(aac_names):
-                            mka_track_options.append(
+                            mka_cmd.append(
                                 f"--track-name={track_id}:{aac_names[aac_count]}"
                             )
-                            aac_count += 1
 
-        # 先添加轨道选项，然后再添加文件名
-        cmd.extend(mka_track_options)
-        cmd.extend(
-            ["--append-to", f"0:{len(video_info.get('tracks', []))}", "PV01.mka"]
-        )
+        # 添加MKA参数和文件名
+        cmd.extend(mka_cmd)
+        cmd.append("PV01.mka")
 
     # 添加字幕文件
     for idx, subtitle in enumerate(subtitle_files):
-        # 先添加轨道选项，然后再添加文件名
-        cmd.extend(
-            [
-                f"--language=0:{subtitle['lang_code']}",
-                f"--track-name=0:{subtitle['name']}",
-                f"--default-track=0:{'yes' if idx == default_subtitle_id else 'no'}",
-                subtitle["path"],
-            ]
-        )
+        sub_cmd = [
+            f"--language=0:{subtitle['lang_code']}",
+            f"--track-name=0:{subtitle['name']}",
+            f"--default-track=0:{'yes' if idx == default_subtitle_id else 'no'}",
+            subtitle["path"],
+        ]
+        cmd.extend(sub_cmd)
 
     # 添加字体文件附件
     for font_file in font_files:
         font_name = os.path.basename(font_file)
-        cmd.extend(
-            [
-                "--attachment-name",
-                font_name,
-                "--attachment-mime-type",
-                "application/x-truetype-font",
-                "--attach-file",
-                font_file,
-            ]
-        )
+        attachment_cmd = [
+            "--attachment-name",
+            font_name,
+            "--attachment-mime-type",
+            "application/x-truetype-font",
+            "--attach-file",
+            font_file,
+        ]
+        cmd.extend(attachment_cmd)
 
     # 执行命令
     print(f"Executing command: {' '.join(cmd)}")
