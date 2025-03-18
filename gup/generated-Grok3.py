@@ -99,7 +99,7 @@ def main():
         for i, track in enumerate(subtitle_tracks, 1):
             props = track["properties"]
             if (
-                props.get("language") == "zh"
+                props.get("language") == "chi"
                 and props.get("language_ietf") == "zh-CN"
                 and "监督评论" not in props.get("track_name", "")
             ):
