@@ -22,7 +22,7 @@ def get_audio_channel_name(channels):
 
 
 def get_audio_track_info(track):
-    channels = int(track["properties"]["audio_channels"])
+    channels = track["properties"]["audio_channels"]
     codec = track["codec"].lower()
     name = track["properties"].get("track_name", "")
 
@@ -64,10 +64,11 @@ def main():
     command = ["mkvmerge", "-o", output_mkv]
 
     # Add video tracks from input mkv
-    command.extend(["-D", input_mkv])
+    command.extend([input_mkv])
 
     # Add audio tracks
     audio_tracks = []
+    audio_tracks_orig = []
     result = subprocess.run(
         ["mkvmerge", "--identify", "--identification-format", "json", input_mkv],
         capture_output=True,
@@ -85,6 +86,7 @@ def main():
                     "name": track["properties"].get("track_name", ""),
                 }
             )
+            audio_tracks_orig.append(track)
 
     if os.path.exists(input_mka):
         result = subprocess.run(
@@ -104,11 +106,17 @@ def main():
                         "name": track["properties"].get("track_name", ""),
                     }
                 )
+            audio_tracks_orig.append(track)
 
-    for track in audio_tracks:
+    for track in audio_tracks_orig:
         info = get_audio_track_info(track)
         command.extend(
-            ["--language", "0:und", "--track-name", f"0:{info['name']}", track["id"]]
+            [
+                "--language",
+                f"{info['number']}:und",
+                "--track-name",
+                f"{info['number']}:{info['name']}",
+            ]
         )
 
     # Add subtitle tracks
@@ -161,9 +169,9 @@ def main():
             "id": t["id"],
             "type": "audio",
             "channels": t["channels"],
-            **get_audio_track_info(t),
+            **get_audio_track_info(audio_tracks_orig[i]),
         }
-        for t in audio_tracks
+        for i, t in enumerate(audio_tracks)
     ] + subtitle_tracks
     set_default_tracks(tracks)
 
@@ -172,6 +180,8 @@ def main():
             command.extend(["--default-track", f"{track['id']}:yes"])
 
     # Execute the command
+    print(command)
+    print(" ".join(command))
     subprocess.run(command)
 
 
