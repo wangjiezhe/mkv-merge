@@ -105,36 +105,32 @@ def main():
     # 构建mkvmerge命令
     cmd = ["mkvmerge", "-o", output_file]
 
-    # 添加输入文件
+    # 添加主视频文件
     cmd.append(video_file)
+
+    # 添加MKA音频文件（如果存在）
     if mka_file:
         cmd.append(mka_file)
-    # 添加字幕轨道
-    for sub in subtitles:
-        cmd.append(sub["file"])
 
-    # 处理轨道参数
-    track_params = []
-
-    # 字幕轨道参数
+    # 添加字幕轨道并设置参数（参数紧跟文件）
     audio_count = len(all_audio)
-    subtitle_count = len(subtitles)
     for i, sub in enumerate(subtitles):
         track_num = audio_count + 1 + i
-        track_params.append(f"--track-name {track_num}:{sub['track_name']}")
-        track_params.append(f"--language {track_num}:{sub['language']}")
+        cmd.append(sub["file"])
+        cmd.append(f"--track-name {track_num}:{sub['track_name']}")
+        cmd.append(f"--language {track_num}:{sub['language']}")
         if sub == default_sub:
-            track_params.append(f"--default-track {track_num}:yes")
+            cmd.append(f"--default-track {track_num}:yes")
         else:
-            track_params.append(f"--default-track {track_num}:no")
+            cmd.append(f"--default-track {track_num}:no")
 
-    # 音频轨道默认设置
+    # 处理音频轨道默认设置
     if default_audio:
         if default_audio["file"] == video_file:
             merged_id = default_audio["track_id"]
         else:
             merged_id = len(video_audio) + default_audio["track_id"]
-        track_params.append(f"--default-track {merged_id}:yes")
+        cmd.append(f"--default-track {merged_id}:yes")
 
     # 处理FLAC轨道重命名
     for track in all_audio:
@@ -145,7 +141,7 @@ def main():
                 merged_id = track["track_id"]
             else:
                 merged_id = len(video_audio) + track["track_id"]
-            track_params.append(f"--track-name {merged_id}:{new_name}")
+            cmd.append(f"--track-name {merged_id}:{new_name}")
 
     # 处理AAC轨道重命名
     aac_tracks = [t for t in all_audio if t["codec"].lower() == "aac"]
@@ -158,18 +154,17 @@ def main():
                     merged_id = track["track_id"]
                 else:
                     merged_id = len(video_audio) + track["track_id"]
-                track_params.append(f"--track-name {merged_id}:{new_name}")
+                cmd.append(f"--track-name {merged_id}:{new_name}")
 
-    # 添加轨道参数到命令（必须在附加文件之前）
-    cmd.extend(track_params)
-
-    # 添加字体文件作为附加文件
+    # 添加字体文件作为附加文件（必须放在最后）
     for font in fonts:
         cmd.extend(["--attach-file", font])
         cmd.extend(["--attachment-mime-type", "application/x-truetype-font"])
 
-    # 执行命令
+    # 打印最终命令（用于调试）
     print("Final command:", " ".join(cmd))
+
+    # 执行命令
     subprocess.run(cmd, check=True)
 
 
