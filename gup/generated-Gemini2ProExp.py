@@ -51,7 +51,7 @@ def get_default_audio_track_id(mkv_file, mka_file):
 
     all_audio_tracks = mkv_audio_tracks + mka_audio_tracks
     if not all_audio_tracks:
-        return None
+        return None, None
 
     # 解决当json中不存在声道信息时的情况
     for track in all_audio_tracks:
@@ -75,9 +75,16 @@ def get_default_audio_track_id(mkv_file, mka_file):
                     track["channels"] = int(channels_match.group(1))  # 更新声道数
 
     max_channels = max(track["channels"] for track in all_audio_tracks)
+    # 找到声道数最多的音轨
     for track in all_audio_tracks:
         if track["channels"] == max_channels:
-            return track["id"], (mka_file is not None and track in mka_audio_tracks)
+            # 返回轨道 ID 和来源 ('mkv' 或 'mka')
+            if track in mkv_audio_tracks:
+                return track["id"], "mkv"
+            elif mka_file and track in mka_audio_tracks:
+                return track["id"], "mka"
+            else:
+                return None, None
 
     return None, None
 
@@ -97,42 +104,42 @@ def generate_mkvmerge_command(
         command.extend(["-D", "--no-chapters", input_mkv, "-d", str(track["id"])])
 
     # 添加音轨并设置默认音轨
-    default_audio_track_id, is_mka = get_default_audio_track_id(input_mkv, input_mka)
+    default_audio_track_id, default_audio_source = get_default_audio_track_id(
+        input_mkv, input_mka
+    )
 
-    # 处理mkv中的音轨
+    # 处理 MKV 文件中的音轨
     mkv_audio_tracks = get_track_info(input_mkv, "audio")
     for track in mkv_audio_tracks:
         command.extend(["-a", str(track["id"])])
-        if track["id"] == default_audio_track_id and not is_mka:
+        if track["id"] == default_audio_track_id and default_audio_source == "mkv":
             command.extend(["--default-track", f"{track['id']}:yes"])
         else:
             command.extend(["--default-track", f"{track['id']}:no"])
-        # 如果音轨有名称则保留，否则按照规则命名
-        if "name" not in track:
-            if track["properties"]["codec_id"] == "A_FLAC":
-                if track["channels"] == 2:
-                    command.extend(["--track-name", f"{track['id']}:2ch"])
-                elif track["channels"] == 3:
-                    command.extend(["--track-name", f"{track['id']}:2.1ch"])
-                elif track["channels"] == 6:
-                    command.extend(["--track-name", f"{track['id']}:5.1ch"])
-                else:
-                    command.extend(
-                        ["--track-name", f"{track['id']}:Unknown Channels"]
-                    )  # 处理其他声道数
-            elif track["properties"]["codec_id"] == "A_AAC":
-                # aac轨道名称不在这里命名，在后续操作命名
-                pass
+
+        # 命名 FLAC 音轨
+        if track["properties"]["codec_id"] == "A_FLAC":
+            if track["channels"] == 2:
+                command.extend(["--track-name", f"{track['id']}:2ch"])
+            elif track["channels"] == 3:
+                command.extend(["--track-name", f"{track['id']}:2.1ch"])
+            elif track["channels"] == 6:
+                command.extend(["--track-name", f"{track['id']}:5.1ch"])
+            else:
+                command.extend(
+                    ["--track-name", f"{track['id']}:Unknown Channels"]
+                )  # 处理其他声道数
+        elif track["properties"]["codec_id"] == "A_AAC":
+            # aac轨道名称不在这里命名，在后续操作命名
+            pass
 
     # 添加 MKA 文件（如果存在）
     if input_mka:
-        if default_audio_track_id is not None and is_mka:
-            command.extend(
-                ["--default-track", f"0:yes"]
-            )  # MKA 中的第一轨通常是 0, 且是默认音轨
+        if default_audio_source == "mka":
+            command.extend(["--default-track", f"0:yes"])
         else:
-            command.extend(["-a", "0", input_mka])  # 不是默认音轨，则添加
-            command.extend(["--default-track", f"0:no"])
+            command.extend(["-a", "0", input_mka])
+            command.extend(["--default-track", "0:no"])
 
     # 添加字幕文件
     subtitle_tracks_count = 0
@@ -142,27 +149,28 @@ def generate_mkvmerge_command(
     for track in mkv_subtitle_tracks:
         command.extend(["-s", str(track["id"]), input_mkv])
         subtitle_tracks_count += 1
-        # 无论是否有名字，都进行重命名
-        if "language" in track["properties"]:
-            if track["properties"]["language"] == "jpn":
-                command.extend(["--track-name", f"{track['id']}:日文"])
-            elif track["properties"]["language"] == "zho":
-                if "language_ietf" in track["properties"] and (
-                    track["properties"]["language_ietf"] == "zh-CN"
-                    or track["properties"]["language_ietf"] == "zh-Hans"
-                ):
-                    command.extend(["--track-name", f"{track['id']}:简体中文"])
-                elif "language_ietf" in track["properties"] and (
-                    track["properties"]["language_ietf"] == "zh-TW"
-                    or track["properties"]["language_ietf"] == "zh-Hant"
-                ):
-                    command.extend(["--track-name", f"{track['id']}:繁体中文"])
+        if "name" not in track:
+            # 如果有名字则保留，没有名字则按照规则命名
+            if "language" in track["properties"]:
+                if track["properties"]["language"] == "jpn":
+                    command.extend(["--track-name", f"{track['id']}:日文"])
+                elif track["properties"]["language"] == "zho":
+                    if "language_ietf" in track["properties"] and (
+                        track["properties"]["language_ietf"] == "zh-CN"
+                        or track["properties"]["language_ietf"] == "zh-Hans"
+                    ):
+                        command.extend(["--track-name", f"{track['id']}:简体中文"])
+                    elif "language_ietf" in track["properties"] and (
+                        track["properties"]["language_ietf"] == "zh-TW"
+                        or track["properties"]["language_ietf"] == "zh-Hant"
+                    ):
+                        command.extend(["--track-name", f"{track['id']}:繁体中文"])
+                    else:
+                        command.extend(["--track-name", f"{track['id']}:未知"])
                 else:
                     command.extend(["--track-name", f"{track['id']}:未知"])
             else:
                 command.extend(["--track-name", f"{track['id']}:未知"])
-        else:
-            command.extend(["--track-name", f"{track['id']}:未知"])
 
     for subtitle in subtitle_files:
         subtitle_tracks_count += 1
@@ -175,8 +183,6 @@ def generate_mkvmerge_command(
             "tc": ("zho", "繁体中文"),
             "zh": ("zho", "简体中文"),
         }
-
-        lang_ietf_map = {"sc": "zh-CN", "tc": "zh-TW"}
 
         if lang_code == "comment":
             command.extend(
