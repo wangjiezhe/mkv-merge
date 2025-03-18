@@ -22,11 +22,9 @@ def get_audio_channel_name(channels):
 
 
 def get_audio_track_info(track):
-    channels = int(track["properties"]["channels"])
-    codec = track["properties"]["codec"].lower()
-    name = (
-        track["properties"]["track_name"] if "track_name" in track["properties"] else ""
-    )
+    channels = int(track["properties"]["audio_channels"])
+    codec = track["codec"].lower()
+    name = track["properties"].get("track_name", "")
 
     if codec == "flac" and not name:
         name = get_audio_channel_name(channels)
@@ -82,8 +80,8 @@ def main():
             audio_tracks.append(
                 {
                     "id": track["id"],
-                    "codec": track["properties"]["codec"],
-                    "channels": track["properties"]["channels"],
+                    "codec": track["codec"],
+                    "channels": track["properties"]["audio_channels"],
                     "name": track["properties"].get("track_name", ""),
                 }
             )
@@ -101,8 +99,8 @@ def main():
                 audio_tracks.append(
                     {
                         "id": f"{input_mka}:{track['id']}",
-                        "codec": track["properties"]["codec"],
-                        "channels": track["properties"]["channels"],
+                        "codec": track["codec"],
+                        "channels": track["properties"]["audio_channels"],
                         "name": track["properties"].get("track_name", ""),
                     }
                 )

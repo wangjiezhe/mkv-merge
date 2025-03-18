@@ -31,3 +31,22 @@ Traceback (most recent call last):
              ~~~~~~~~~~~~~~~~~~~^^^^^^^^^
 KeyError: 'codec'
 ```
+
+## 第3轮
+
+对话：给出错误信息，及 `mkvmerge -J PV01.mkv` 的结果。
+
+错误信息如下
+
+```
+Traceback (most recent call last):
+  File "/root/mkv-merge/gup/generated-Grok2.py", line 179, in <module>
+    main()
+  File "/root/mkv-merge/gup/generated-Grok2.py", line 109, in main
+    info = get_audio_track_info(track)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/mkv-merge/gup/generated-Grok2.py", line 25, in get_audio_track_info
+    channels = int(track["properties"]["audio_channels"])
+                   ~~~~~^^^^^^^^^^^^^^
+KeyError: 'properties'
+```
