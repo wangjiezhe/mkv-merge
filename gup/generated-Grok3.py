@@ -18,17 +18,19 @@ def get_channel_count(track):
 def process_subtitle_language(filename):
     parts = filename.split(".")
     if len(parts) < 3:
-        return "zh", "SC", "简体中文"
+        return "zh-CN", "简体中文"
 
     lang_part = parts[1].lower()
     if lang_part == "comment":
-        return None, None, "监督评论"
+        return "zh-CN", "监督评论"
     elif lang_part == "ja":
-        return "ja", "JP", "日本語"
-    elif lang_part in ["sc", "tc"]:
-        return "zh", lang_part.upper(), "简体中文" if lang_part == "sc" else "繁體中文"
+        return "ja", "日本語"
+    elif lang_part == "sc":
+        return "zh-CN", "简体中文"
+    elif lang_part == "tc":
+        return "zh-TW", "繁體中文"
     else:
-        return "zh", "SC", "简体中文"
+        raise ValueError(f"{lang_part} 语言暂时无法处理")
 
 
 def main():
@@ -68,15 +70,11 @@ def main():
 
     subtitle_langs = []
     for sub_file in subtitle_files:
-        lang_code, region, track_name = process_subtitle_language(sub_file)
-        if lang_code:
-            cmd.extend(["--language", f"0:{lang_code}", "--sub-charset", "0:UTF-8"])
-            if region:
-                cmd.extend(["--track-name", f"0:{track_name}"])
-        else:
-            cmd.extend(["--track-name", "0:监督评论"])
+        lang_code, track_name = process_subtitle_language(sub_file)
+        cmd.extend(["--language", f"0:{lang_code}", "--sub-charset", "0:UTF-8"])
+        cmd.extend(["--track-name", f"0:{track_name}"])
         cmd.append(os.path.join(subtitle_dir, sub_file))
-        subtitle_langs.append((lang_code, region, track_name))
+        subtitle_langs.append((lang_code, track_name))
 
     # Handle fonts
     if font_files:
@@ -86,6 +84,7 @@ def main():
             cmd.extend(["--attach-file", os.path.join(subtitle_dir, font)])
 
     # Execute mkvmerge
+    print(cmd)
     subprocess.run(cmd, check=True)
 
     # Post-processing with mkvpropedit
@@ -149,6 +148,7 @@ def main():
 
     # Execute mkvpropedit
     if len(prop_cmd) > 2:
+        print(prop_cmd)
         subprocess.run(prop_cmd, check=True)
 
 

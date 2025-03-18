@@ -40,6 +40,24 @@ subprocess.CalledProcessError: Command '['mkvmerge', '-o', 'dist/PV01_merged.mkv
 PV01.mkv: 错误如下
 
 ```
+mkvmerge v88.0 ('All I Know') 64-bit
+Automatic MIME type recognition for 'dist/subsetted/方正准圆_GBK.MNN27RAV.ttf': font/ttf
+Error: The file '--track-name 2:简体中文' could not be opened for reading: open file error.
+Traceback (most recent call last):
+File "/root/mkv-merge/gup/generated-QwQ32B.py", line 178, in <module>
+main()
+File "/root/mkv-merge/gup/generated-QwQ32B.py", line 174, in main
+subprocess.run(cmd, check=True)
+File "/usr/lib/python3.12/subprocess.py", line 573, in run
+raise CalledProcessError(retcode, process.args,
+subprocess.CalledProcessError: Command '['mkvmerge', '-o', 'dist/PV01_merged.mkv', 'PV01.mkv', 'dist/subsetted/PV01.SC.ass', 'dist/subsetted/PV01.TC.ass', '--attach-file', 'dist/subsetted/方正准圆_GBK.MNN27RAV.ttf', '--attachment-mime-type', 'application/x-truetype-font', '--attach-file', 'dist/subsetted/微软雅黑.7KKLB1SW.ttf', '--attachment-mime-type', 'application/x-truetype-font', '--track-name 2:简体中文', '--language 2:zh', '--default-track 2:yes', '--track-name 3:繁体中文', '--language 3:zh-TW', '--default-track 3:no', '--default-track 1:yes']' returned non-zero exit status 2.
+```
+
+## 第4轮
+
+PV01.mkv: 错误如下
+
+```
 Final command: mkvmerge -o dist/PV01_merged.mkv PV01.mkv dist/subsetted/PV01.SC.ass dist/subsetted/PV01.TC.ass --track-name 2:简体中文 --language 2:zh --default-track 2:yes --track-name 3:繁体中文 --language 3:zh-TW --default-track 3:no --default-track 1:yes --attach-file dist/subsetted/方正准圆_GBK.MNN27RAV.ttf --attachment-mime-type application/x-truetype-font --attach-file dist/subsetted/微软雅黑.7KKLB1SW.ttf --attachment-mime-type application/x-truetype-font
 mkvmerge v88.0 ('All I Know') 64-bit
 Error: The file '--track-name 2:简体中文' could not be opened for reading: open file error.
@@ -54,7 +72,7 @@ subprocess.CalledProcessError: Command '['mkvmerge', '-o', 'dist/PV01_merged.mkv
 ```
 
 
-## 第4/5轮
+## 第5轮
 
 PV01.mkv: 错误如下
 
@@ -125,7 +143,7 @@ Multiplexing took 0 seconds.
 ```bash
 mkvmerge -o dist/PV01_merged.mkv \
   --track-name 1:2ch --default-track 0:yes --default-track 1:yes PV01.mkv \
-  --track-name 0:简体中文 --language 0:zh --default-track 0:yes dist/subsetted/PV01.SC.ass \
+  --track-name 0:简体中文 --language 0:zh-CN --default-track 0:yes dist/subsetted/PV01.SC.ass \
   --track-name 0:繁体中文 --language 0:zh-TW --default-track 0:no dist/subsetted/PV01.TC.ass \
   --attach-file dist/subsetted/方正准圆_GBK.MNN27RAV.ttf \
   --attachment-mime-type application/x-truetype-font \
@@ -133,7 +151,7 @@ mkvmerge -o dist/PV01_merged.mkv \
   --attachment-mime-type application/x-truetype-font
 ```
 
-`--track-name`、`--language`、`--default-track` 应该在引入文件之前，且`--track-name`应该在最前面。
+`--track-name`、`--language`、`--default-track` 应该在引入文件之前，且 `--track-name` 应该在 `--default-track` 之前（？）。
 
 ## 第6轮
 
