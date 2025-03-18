@@ -16,7 +16,7 @@ def extract_audio_tracks_with_mediainfo(file):
         if track["@type"] == "Audio":
             audio_info = {
                 "codec": track.get("Format", ""),
-                "channels": track.get("Channel(s)", ""),
+                "channels": track.get("Channels", ""),
                 "track_id": track.get(
                     "StreamOrder", ""
                 ),  # Note: Mapping with mkvmerge IDs may be needed
@@ -130,7 +130,7 @@ def remux_with_mkvtoolnix():
                 "mkvpropedit",
                 output_file,
                 "--edit",
-                f"track:a{i}",
+                f"track:a{i + 1}",
                 "--set",
                 f"name={name}",
             ]
