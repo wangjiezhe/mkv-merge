@@ -45,3 +45,11 @@ mkvmerge v88.0 ('All I Know') 64-bit
 Error: 'tc' is not a valid IETF BCP 47/RFC 5646 language tag in '--language 0:tc'. Additional information from the parser: The value 'tc' is not a valid ISO 639 language code.
 Error creating MKV: 2
 ```
+
+## 第5轮
+
+没有了，提示上下文窗口超限了。。。
+
+## 手动分析
+
+`mkvmerge` 使用 `zh` 或者 `chi` 表示中文，不接受 `sc` 和 `tc`。（`sc` 是另一个国家，不是中国；`tc` 不存在）

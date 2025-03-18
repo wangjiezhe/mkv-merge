@@ -1,3 +1,4 @@
+import json
 import os
 import re
 import subprocess
@@ -21,26 +22,23 @@ def get_audio_channel_name(channels):
 
 
 def get_audio_track_info(track):
-    channels = int(track["channels"])
-    codec = track["codec"].lower()
-    name = track["name"] if track["name"] else ""
+    channels = int(track["properties"]["channels"])
+    codec = track["properties"]["codec"].lower()
+    name = (
+        track["properties"]["track_name"] if "track_name" in track["properties"] else ""
+    )
 
     if codec == "flac" and not name:
         name = get_audio_channel_name(channels)
     elif codec == "aac" and not name:
-        if track["number"] == 0:
+        if track["id"] == 0:
             name = "声优评论"
-        elif track["number"] == 1:
+        elif track["id"] == 1:
             name = "监督评论"
-        elif track["number"] == 2:
+        elif track["id"] == 2:
             name = "军事评论"
 
-    return {
-        "number": track["number"],
-        "codec": codec,
-        "channels": channels,
-        "name": name,
-    }
+    return {"number": track["id"], "codec": codec, "channels": channels, "name": name}
 
 
 def set_default_tracks(tracks):
@@ -73,51 +71,39 @@ def main():
     # Add audio tracks
     audio_tracks = []
     result = subprocess.run(
-        ["mkvmerge", "--identify", input_mkv], capture_output=True, text=True
+        ["mkvmerge", "--identify", "--identification-format", "json", input_mkv],
+        capture_output=True,
+        text=True,
     )
-    for line in result.stdout.split("\n"):
-        match = re.match(r"Track ID (\d+): audio \((\w+)\)", line)
-        if match:
-            track_id, codec = match.groups()
-            result = subprocess.run(
-                ["mkvmerge", "--identify", f"{input_mkv}:{track_id}"],
-                capture_output=True,
-                text=True,
-            )
-            channels = re.search(r"channels: (\d+)", result.stdout)
-            name = re.search(r"track name: (.+)", result.stdout)
+    data = json.loads(result.stdout)
+
+    for track in data["tracks"]:
+        if track["type"] == "audio":
             audio_tracks.append(
                 {
-                    "number": len(audio_tracks),
-                    "id": track_id,
-                    "codec": codec,
-                    "channels": int(channels.group(1)) if channels else 0,
-                    "name": name.group(1) if name else "",
+                    "id": track["id"],
+                    "codec": track["properties"]["codec"],
+                    "channels": track["properties"]["channels"],
+                    "name": track["properties"].get("track_name", ""),
                 }
             )
 
     if os.path.exists(input_mka):
         result = subprocess.run(
-            ["mkvmerge", "--identify", input_mka], capture_output=True, text=True
+            ["mkvmerge", "--identify", "--identification-format", "json", input_mka],
+            capture_output=True,
+            text=True,
         )
-        for line in result.stdout.split("\n"):
-            match = re.match(r"Track ID (\d+): audio \((\w+)\)", line)
-            if match:
-                track_id, codec = match.groups()
-                result = subprocess.run(
-                    ["mkvmerge", "--identify", f"{input_mka}:{track_id}"],
-                    capture_output=True,
-                    text=True,
-                )
-                channels = re.search(r"channels: (\d+)", result.stdout)
-                name = re.search(r"track name: (.+)", result.stdout)
+        data = json.loads(result.stdout)
+
+        for track in data["tracks"]:
+            if track["type"] == "audio":
                 audio_tracks.append(
                     {
-                        "number": len(audio_tracks),
-                        "id": f"{input_mka}:{track_id}",
-                        "codec": codec,
-                        "channels": int(channels.group(1)) if channels else 0,
-                        "name": name.group(1) if name else "",
+                        "id": f"{input_mka}:{track['id']}",
+                        "codec": track["properties"]["codec"],
+                        "channels": track["properties"]["channels"],
+                        "name": track["properties"].get("track_name", ""),
                     }
                 )
 
@@ -150,7 +136,12 @@ def main():
                 ]
             )
             subtitle_tracks.append(
-                {"number": len(subtitle_tracks), "language": language, "name": name}
+                {
+                    "id": len(subtitle_tracks),
+                    "language": language,
+                    "name": name,
+                    "type": "subtitles",
+                }
             )
 
     # Add font attachments
@@ -167,12 +158,20 @@ def main():
             )
 
     # Set default tracks
-    tracks = audio_tracks + subtitle_tracks
+    tracks = [
+        {
+            "id": t["id"],
+            "type": "audio",
+            "channels": t["channels"],
+            **get_audio_track_info(t),
+        }
+        for t in audio_tracks
+    ] + subtitle_tracks
     set_default_tracks(tracks)
 
     for track in tracks:
         if "default" in track and track["default"] == "yes":
-            command.extend(["--default-track", f"{track['number']}:yes"])
+            command.extend(["--default-track", f"{track['id']}:yes"])
 
     # Execute the command
     subprocess.run(command)
