@@ -116,17 +116,23 @@ def generate_mkvmerge_command(
                     command.extend(["--track-name", f"{track['id']}:2.1ch"])
                 elif track["channels"] == 6:
                     command.extend(["--track-name", f"{track['id']}:5.1ch"])
+                else:
+                    command.extend(
+                        ["--track-name", f"{track['id']}:Unknown Channels"]
+                    )  # 处理其他声道数
             elif track["properties"]["codec_id"] == "A_AAC":
                 # aac轨道名称不在这里命名，在后续操作命名
                 pass
 
     # 添加 MKA 文件（如果存在）
     if input_mka:
-        command.append(input_mka)
         if default_audio_track_id is not None and is_mka:
-            command.extend(["--default-track", "0:yes"])  # MKA 中的第一轨通常是 0
+            command.extend(
+                ["--default-track", f"0:yes"]
+            )  # MKA 中的第一轨通常是 0, 且是默认音轨
         else:
-            command.extend(["--default-track", "0:no"])
+            command.extend(["-a", "0", input_mka])  # 不是默认音轨，则添加
+            command.extend(["--default-track", f"0:no"])
 
     # 添加字幕文件
     subtitle_tracks_count = 0
@@ -136,28 +142,27 @@ def generate_mkvmerge_command(
     for track in mkv_subtitle_tracks:
         command.extend(["-s", str(track["id"]), input_mkv])
         subtitle_tracks_count += 1
-        if "name" not in track:
-            # 如果有名字则保留，没有名字则按照规则命名
-            if "language" in track["properties"]:
-                if track["properties"]["language"] == "jpn":
-                    command.extend(["--track-name", f"{track['id']}:日文"])
-                elif track["properties"]["language"] == "zho":
-                    if "language_ietf" in track["properties"] and (
-                        track["properties"]["language_ietf"] == "zh-CN"
-                        or track["properties"]["language_ietf"] == "zh-Hans"
-                    ):
-                        command.extend(["--track-name", f"{track['id']}:简体中文"])
-                    elif "language_ietf" in track["properties"] and (
-                        track["properties"]["language_ietf"] == "zh-TW"
-                        or track["properties"]["language_ietf"] == "zh-Hant"
-                    ):
-                        command.extend(["--track-name", f"{track['id']}:繁体中文"])
-                    else:
-                        command.extend(["--track-name", f"{track['id']}:未知"])
+        # 无论是否有名字，都进行重命名
+        if "language" in track["properties"]:
+            if track["properties"]["language"] == "jpn":
+                command.extend(["--track-name", f"{track['id']}:日文"])
+            elif track["properties"]["language"] == "zho":
+                if "language_ietf" in track["properties"] and (
+                    track["properties"]["language_ietf"] == "zh-CN"
+                    or track["properties"]["language_ietf"] == "zh-Hans"
+                ):
+                    command.extend(["--track-name", f"{track['id']}:简体中文"])
+                elif "language_ietf" in track["properties"] and (
+                    track["properties"]["language_ietf"] == "zh-TW"
+                    or track["properties"]["language_ietf"] == "zh-Hant"
+                ):
+                    command.extend(["--track-name", f"{track['id']}:繁体中文"])
                 else:
                     command.extend(["--track-name", f"{track['id']}:未知"])
             else:
                 command.extend(["--track-name", f"{track['id']}:未知"])
+        else:
+            command.extend(["--track-name", f"{track['id']}:未知"])
 
     for subtitle in subtitle_files:
         subtitle_tracks_count += 1

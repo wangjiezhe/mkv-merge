@@ -43,3 +43,15 @@ mkvmerge 错误输出:
 2. 音频轨道没有设置名称
 3. 简体中文字幕轨道的名称是正确的，但是繁体中文字幕轨道没有设置名称
 
+# 第3轮
+
+对话：提供给了输出信息，和三个问题说明。
+
+
+程序成功运行，输出如下
+```
+执行的命令: mkvmerge -o dist/PV01_merged.mkv -d 0 PV01.mkv -D --no-chapters PV01.mkv -d 0 -a 1 --default-track 1:yes --track-name 1:Unknown Channels --language 0:zho --track-name 0:简体中文 dist/subsetted/PV01.SC.ass --default-track 0:yes --language 1:zho --track-name 1:繁体中文 dist/subsetted/PV01.TC.ass --attachment-mime-type application/x-truetype-font --attach-file dist/subsetted/方正准圆_GBK.MNN27RAV.ttf --attachment-mime-type application/x-truetype-font --attach-file dist/subsetted/微软雅黑.7KKLB1SW.ttf
+mkvmerge 错误输出:
+```
+
+结果上面的三个问题一个也没有解决。
