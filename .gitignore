@@ -24,4 +24,6 @@ wheels/
 uv.lock
 
 # testing dir
-gup/
+gup/*
+!gup/*.py
+!gup/prompt.txt
