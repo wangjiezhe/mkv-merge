@@ -19,9 +19,8 @@ def main():
         lang_part = parts[1].lower()
         if lang_part == "comment":
             track_name = "监督评论"
-            language = "ja"  # 语言代码可能需根据实际调整
+            language = "ja"
         else:
-            # 处理语言代码
             if lang_part in ["sc", "tc"]:
                 language = "zh" if lang_part == "sc" else "zh-TW"
                 track_name = "简体中文" if lang_part == "sc" else "繁体中文"
@@ -110,15 +109,21 @@ def main():
     cmd.append(video_file)
     if mka_file:
         cmd.append(mka_file)
-    cmd.extend([sub["file"] for sub in subtitles])
-    cmd.extend(fonts)
+    # 添加字幕轨道
+    for sub in subtitles:
+        cmd.append(sub["file"])
+
+    # 添加字体文件作为附加文件
+    for font in fonts:
+        cmd.extend(["--attach-file", font])
+        cmd.extend(["--attachment-mime-type", "application/x-truetype-font"])
 
     # 处理轨道参数
     track_params = []
 
-    # 处理字幕轨道参数
-    # 字幕轨道的ID从音频轨道总数 + 1开始
+    # 字幕轨道参数
     audio_count = len(all_audio)
+    subtitle_count = len(subtitles)
     for i, sub in enumerate(subtitles):
         track_num = audio_count + 1 + i
         track_params.append(f'--track-name "{track_num}:{sub["track_name"]}"')
@@ -128,51 +133,40 @@ def main():
         else:
             track_params.append(f"--default-track {track_num}:no")
 
-    # 处理音频轨道参数
-    # 设置默认音频轨道
+    # 音频轨道默认设置
     if default_audio:
-        # 计算merged_id
-        if default_audio["file"] == video_file:
-            merged_id = default_audio["track_id"]
-        else:
-            merged_id = len(video_audio) + default_audio["track_id"]
+        merged_id = (
+            default_audio["track_id"]
+            if default_audio["file"] == video_file
+            else (len(video_audio) + default_audio["track_id"])
+        )
         track_params.append(f"--default-track {merged_id}:yes")
 
     # 处理FLAC轨道重命名
     for track in all_audio:
         if track["codec"].lower() == "flac" and not track["name"]:
             channels = track["channels"]
-            if channels == 2:
-                new_name = "2ch"
-            elif channels == 6:
-                new_name = "5.1ch"
-            else:
-                new_name = f"{channels}ch"
-            # 计算merged_id
-            if track["file"] == video_file:
-                merged_id = track["track_id"]
-            else:
-                merged_id = len(video_audio) + track["track_id"]
+            new_name = f"{channels if channels != 6 else '5.1'}ch"
+            merged_id = (
+                track["track_id"]
+                if track["file"] == video_file
+                else (len(video_audio) + track["track_id"])
+            )
             track_params.append(f'--track-name "{merged_id}:{new_name}"')
 
     # 处理AAC轨道重命名
     aac_tracks = [t for t in all_audio if t["codec"].lower() == "aac"]
     for idx, track in enumerate(aac_tracks):
         if not track["name"]:
-            if idx == 0:
-                new_name = "声优评论"
-            elif idx == 1:
-                new_name = "监督评论"
-            elif idx == 2:
-                new_name = "军事评论"
-            else:
-                continue
-            # 计算merged_id
-            if track["file"] == video_file:
-                merged_id = track["track_id"]
-            else:
-                merged_id = len(video_audio) + track["track_id"]
-            track_params.append(f'--track-name "{merged_id}:{new_name}"')
+            names = ["声优评论", "监督评论", "军事评论"]
+            new_name = names[idx] if idx < len(names) else ""
+            if new_name:
+                merged_id = (
+                    track["track_id"]
+                    if track["file"] == video_file
+                    else (len(video_audio) + track["track_id"])
+                )
+                track_params.append(f'--track-name "{merged_id}:{new_name}"')
 
     # 添加所有参数到命令
     cmd.extend(track_params)
