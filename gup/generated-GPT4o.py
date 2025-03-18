@@ -39,7 +39,7 @@ def remux_with_mkvtoolnix():
                 args.extend(
                     [
                         "--language",
-                        "0:zh",
+                        "0:zh-CN",  # Set Simplified Chinese with region
                         "--track-name",
                         "0:Simplified Chinese",
                         subtitle_file,
@@ -83,7 +83,6 @@ def remux_with_mkvtoolnix():
         args.extend(["--attachment-name", attachment_name, "--attach-file", font_file])
 
     # Execute mkvmerge command to create the new file
-    print(" ".join(args))
     subprocess.run(args)
 
     # Post-process: Set appropriate default audio and subtitles
@@ -91,7 +90,7 @@ def remux_with_mkvtoolnix():
     process = subprocess.run(cmd_identify, capture_output=True, text=True)
     output_info = process.stdout.splitlines()
 
-    # Set default audio track
+    # Rename and set default audio tracks
     audio_tracks = {}
     for line in output_info:
         if "audio" in line:
@@ -105,7 +104,7 @@ def remux_with_mkvtoolnix():
     if audio_tracks:
         default_audio_track = max(
             audio_tracks, key=lambda k: audio_tracks[k]["channels"]
-        )
+        )  # Most channels as default
         subprocess.run(
             [
                 "mkvpropedit",
@@ -116,6 +115,46 @@ def remux_with_mkvtoolnix():
                 "flag-default=1",
             ]
         )
+        # Rename audio tracks
+        for track_id, track_data in audio_tracks.items():
+            codec = track_data["codec"]
+            if codec == "flac":
+                ch_name = f"{track_data['channels']}ch"
+                subprocess.run(
+                    [
+                        "mkvpropedit",
+                        output_file,
+                        "--edit",
+                        f"track:a{track_id}",
+                        "--set",
+                        f"name={ch_name}",
+                    ]
+                )
+            elif codec == "aac":
+                default_aac_names = [
+                    "Voice Actors Commentary",
+                    "Director Commentary",
+                    "Military Commentary",
+                ]
+                aac_track_idx = 0
+                for track_id, track_data in sorted(
+                    audio_tracks.items()
+                ):  # Sort to ensure consistent order
+                    if track_data["codec"] == "aac" and aac_track_idx < len(
+                        default_aac_names
+                    ):
+                        name = default_aac_names[aac_track_idx]
+                        subprocess.run(
+                            [
+                                "mkvpropedit",
+                                output_file,
+                                "--edit",
+                                f"track:a{track_id}",
+                                "--set",
+                                f"name={name}",
+                            ]
+                        )
+                        aac_track_idx += 1
 
     # Set default subtitle track
     subtitle_tracks = []
@@ -123,7 +162,7 @@ def remux_with_mkvtoolnix():
     for line in output_info:
         if "subtitles" in line:
             subtitle_tracks.append(line)
-            if "Simplified Chinese" in line or "zh" in line:
+            if "Simplified Chinese" in line or "zh-CN" in line:
                 match = re.search(r"Track ID (\d+):", line)
                 if match:
                     default_subtitle_track = int(match.group(1))
@@ -144,6 +183,19 @@ def remux_with_mkvtoolnix():
                 "flag-default=1",
             ]
         )
+        for track in subtitle_tracks:
+            match = re.search(r"Track ID (\d+):", track)
+            if match and int(match.group(1)) != default_subtitle_track:
+                subprocess.run(
+                    [
+                        "mkvpropedit",
+                        output_file,
+                        "--edit",
+                        f"track:s{match.group(1)}",
+                        "--set",
+                        "flag-default=0",
+                    ]
+                )
 
 
 if __name__ == "__main__":
