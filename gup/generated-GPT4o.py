@@ -10,18 +10,14 @@ def remux_with_mkvtoolnix():
     subsetted_folder = os.path.join(dist_folder, "subsetted")
     output_file = os.path.join(dist_folder, "PV01_final.mkv")
 
-    # Initialize arguments for mkvmerge
-    args = ["mkvmerge", "-o", output_file, "--no-subtitles"]
+    args = ["mkvmerge", "-o", output_file]
 
-    # Add video file
-    args.extend(["--no-audio", video_file])
-
-    # Collect existing subtitle tracks in the MKV and retain
-    args.extend(["--no-audio", "--no-video", "--no-chapters", video_file])
+    # Add video and retain its audio tracks
+    args.append(video_file)
 
     # Add external audio file if exists
     if os.path.exists(audio_file):
-        args.extend(["--no-subtitles", audio_file])
+        args.append(audio_file)
 
     # Collect subtitle and font files
     subtitle_files = []
@@ -77,73 +73,39 @@ def remux_with_mkvtoolnix():
                         subtitle_file,
                     ]
                 )
-            else:
-                # Default to Simplified Chinese if no specific language code
-                args.extend(
-                    [
-                        "--language",
-                        "0:zh",
-                        "--track-name",
-                        "0:Simplified Chinese",
-                        subtitle_file,
-                    ]
-                )
 
-    # Add font attachments with unique names
+    # Add font attachments
     for font_file in font_files:
-        # Ensure the attachment name in the output is unique
         attachment_name = os.path.basename(font_file)
-        attachment_name = (
-            f"{attachment_name}_{hash(font_file)}"  # Append hash to ensure uniqueness
-        )
-
-        # Check if the file extension is valid (ttf, otf, ttc); otherwise, skip it
         if not re.search(r"\.(ttf|otf|ttc)$", font_file, re.IGNORECASE):
             print(f"Skipping unsupported font file: {font_file}")
             continue
-
-        # Add font file as attachment with properly linked fields
-        args.extend(
-            [
-                "--attachment-name",
-                attachment_name,
-                "--attach-file",
-                font_file,  # Attach the corresponding file
-            ]
-        )
+        args.extend(["--attachment-name", attachment_name, "--attach-file", font_file])
 
     # Execute mkvmerge command to create the new file
     print(" ".join(args))
     subprocess.run(args)
 
-    # Post-processing: Analyze and adjust default tracks and naming
+    # Post-process: Set appropriate default audio and subtitles
     cmd_identify = ["mkvmerge", "-i", output_file]
     process = subprocess.run(cmd_identify, capture_output=True, text=True)
     output_info = process.stdout.splitlines()
 
-    audio_tracks = []
-    subtitle_tracks = []
+    # Set default audio track
+    audio_tracks = {}
     for line in output_info:
         if "audio" in line:
-            audio_tracks.append(line)
-        elif "subtitles" in line:
-            subtitle_tracks.append(line)
+            match = re.search(r"Track ID (\d+): audio \((\w+), (\d+[.]?\d*)ch\)", line)
+            if match:
+                track_id = int(match.group(1))
+                codec = match.group(2)
+                channels = float(match.group(3))
+                audio_tracks[track_id] = {"codec": codec, "channels": channels}
 
-    # Determine default audio track: Use the one with the highest number of channels
-    audio_channels = {}
-    for track in audio_tracks:
-        match = re.search(r"Track ID (\d+): audio \((\w+), (\d+[.]?\d*)ch\)", track)
-        if match:
-            track_id = int(match.group(1))
-            codec = match.group(2)
-            channels = float(match.group(3))
-            audio_channels[track_id] = {"codec": codec, "channels": channels}
-
-    if audio_channels:
+    if audio_tracks:
         default_audio_track = max(
-            audio_channels, key=lambda k: audio_channels[k]["channels"]
+            audio_tracks, key=lambda k: audio_tracks[k]["channels"]
         )
-        # Set the default audio track
         subprocess.run(
             [
                 "mkvpropedit",
@@ -155,60 +117,23 @@ def remux_with_mkvtoolnix():
             ]
         )
 
-        # Rename FLAC audio tracks based on channels
-        for track_id, track_data in audio_channels.items():
-            if track_data["codec"] == "flac":
-                ch_name = f"{track_data['channels']}ch"
-                subprocess.run(
-                    [
-                        "mkvpropedit",
-                        output_file,
-                        "--edit",
-                        f"track:a{track_id}",
-                        "--set",
-                        f"name={ch_name}",
-                    ]
-                )
-
-        # Rename AAC audio tracks with specific commentary names
-        aac_track_order = [
-            "Voice Actors Commentary",
-            "Director Commentary",
-            "Military Commentary",
-        ]
-        aac_track_idx = 0
-        for track_id, track_data in audio_channels.items():
-            if track_data["codec"] == "aac" and aac_track_idx < len(aac_track_order):
-                subprocess.run(
-                    [
-                        "mkvpropedit",
-                        output_file,
-                        "--edit",
-                        f"track:a{track_id}",
-                        "--set",
-                        f"name={aac_track_order[aac_track_idx]}",
-                    ]
-                )
-                aac_track_idx += 1
-
-    # Determine the default subtitle track: Simplified Chinese takes priority
+    # Set default subtitle track
+    subtitle_tracks = []
     default_subtitle_track = None
-    for track in subtitle_tracks:
-        match = re.search(
-            r"Track ID (\d+): subtitles \(.*?, Simplified Chinese\)", track
-        )
-        if match:
-            default_subtitle_track = int(match.group(1))
-            break
+    for line in output_info:
+        if "subtitles" in line:
+            subtitle_tracks.append(line)
+            if "Simplified Chinese" in line or "zh" in line:
+                match = re.search(r"Track ID (\d+):", line)
+                if match:
+                    default_subtitle_track = int(match.group(1))
 
     if default_subtitle_track is None and subtitle_tracks:
-        # If no Simplified Chinese subtitle, choose the first subtitle as default
-        match = re.search(r"Track ID (\d+): subtitles", subtitle_tracks[0])
+        match = re.search(r"Track ID (\d+):", subtitle_tracks[0])
         if match:
             default_subtitle_track = int(match.group(1))
 
     if default_subtitle_track is not None:
-        # Set the default subtitle track
         subprocess.run(
             [
                 "mkvpropedit",
