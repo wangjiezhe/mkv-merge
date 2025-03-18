@@ -51,3 +51,19 @@ mkvmerge -o dist/PV01_final.mkv --no-subtitles --no-audio PV01.mkv --no-audio --
 ## 第5轮
 
 上面的问题1和3都没有解决。
+
+原因是程序使用 `mkvmerge -i dist/PV01_final.mkv` 获取文件信息，这个命令的输出信息如下，
+```
+File 'dist/PV01_final.mkv': container: Matroska
+Track ID 0: video (HEVC/H.265/MPEG-H)
+Track ID 1: audio (FLAC)
+Track ID 2: subtitles (SubStationAlpha)
+Track ID 3: subtitles (SubStationAlpha)
+Attachment ID 1: type 'font/ttf', size 90656 bytes, file name '方正准圆_GBK.MNN27RAV.ttf'
+Attachment ID 2: type 'font/ttf', size 16224 bytes, file name '微软雅黑.7KKLB1SW.ttf'
+```
+里面没有音频的声道信息，也没有字幕语言的信息。
+
+## 第6轮
+
+还是没有解决。
