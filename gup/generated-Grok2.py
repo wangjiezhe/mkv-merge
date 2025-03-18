@@ -8,12 +8,20 @@ def get_language_name(code):
     language_names = {
         "ja": "日文",
         "sc": "简体中文",
-        "SC": "简体中文",
         "tc": "繁体中文",
-        "TC": "繁体中文",
         "comment": "监督评论",
     }
-    return language_names.get(code, "简体中文")  # Default to 简体中文 if code not found
+    return language_names.get(code.lower(), "")
+
+
+def get_language_code(code):
+    language_names = {
+        "ja": "ja",
+        "sc": "zh-CN",
+        "tc": "zh-TW",
+        "comment": "监督评论",
+    }
+    return language_names.get(code.lower(), "und")
 
 
 def get_audio_channel_name(channels):
@@ -25,6 +33,7 @@ def get_audio_track_info(track):
     channels = track["properties"]["audio_channels"]
     codec = track["codec"].lower()
     name = track["properties"].get("track_name", "")
+    language = track["properties"].get("language", "und")
 
     if codec == "flac" and not name:
         name = get_audio_channel_name(channels)
@@ -36,7 +45,13 @@ def get_audio_track_info(track):
         elif track["id"] == 2:
             name = "军事评论"
 
-    return {"number": track["id"], "codec": codec, "channels": channels, "name": name}
+    return {
+        "number": track["id"],
+        "codec": codec,
+        "channels": channels,
+        "name": name,
+        "language": language,
+    }
 
 
 def set_default_tracks(tracks):
@@ -104,6 +119,7 @@ def main():
                         "codec": track["codec"],
                         "channels": track["properties"]["audio_channels"],
                         "name": track["properties"].get("track_name", ""),
+                        "language": track["properties"].get("language", "und"),
                     }
                 )
             audio_tracks_orig.append(track)
@@ -113,7 +129,7 @@ def main():
         command.extend(
             [
                 "--language",
-                f"{info['number']}:und",
+                f"{info['number']}:{info['language']}",
                 "--track-name",
                 f"{info['number']}:{info['name']}",
             ]
@@ -132,10 +148,12 @@ def main():
                 language = "sc"
                 name = "简体中文"
 
+            language_code = get_language_code(language)
+
             command.extend(
                 [
                     "--language",
-                    "0:und",
+                    f"0:{language_code}",
                     "--track-name",
                     f"0:{name}",
                     os.path.join(subtitle_dir, file),
