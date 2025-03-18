@@ -71,3 +71,7 @@ Attachment ID 2: type 'font/ttf', size 16224 bytes, file name '微软雅黑.7KKL
 从 `mediainfo --Output=JSON dist/PV01_final.mkv | jq -r '.media.track.[] | select(."@type" == "Audio")'` 的输出可以发现，获取声道信息应该使用 `Channels`，而不是 `Channel(s)`。
 
 另外，使用 `mkvpropedit` 修改音频轨道的标题时，音频轨道的序号是从 1 开始的，而 Python 里面需要是从 0 开始的，需要进行转换。
+
+# 第7轮
+
+这次默认字幕轨道对了，但是音频声道还是没有名称。

@@ -4,26 +4,26 @@ import re
 import subprocess
 
 
-def extract_audio_tracks_with_mediainfo(file):
-    """Extract detailed audio track information using MediaInfo."""
+def extract_tracks_with_mediainfo(file, track_type):
+    """Extract detailed track information from MediaInfo."""
     result = subprocess.run(
         ["mediainfo", "--Output=JSON", file], capture_output=True, text=True
     )
     mediainfo = json.loads(result.stdout)
 
-    audio_tracks = []
+    tracks = []
     for track in mediainfo["media"]["track"]:
-        if track["@type"] == "Audio":
-            audio_info = {
+        if track["@type"].lower() == track_type.lower():
+            track_info = {
+                "id": track["StreamOrder"],
                 "codec": track.get("Format", ""),
-                "channels": track.get("Channels", ""),
-                "track_id": track.get(
-                    "StreamOrder", ""
-                ),  # Note: Mapping with mkvmerge IDs may be needed
+                "channels": track.get("Channels", ""),  # For audio only
+                "language": track.get("Language", ""),  # For subtitles
+                "title": track.get("Title", ""),  # Title of the track
             }
-            audio_tracks.append(audio_info)
+            tracks.append(track_info)
 
-    return audio_tracks
+    return tracks
 
 
 def remux_with_mkvtoolnix():
@@ -119,42 +119,67 @@ def remux_with_mkvtoolnix():
     # Execute mkvmerge command to create the new file
     subprocess.run(args)
 
-    # Post-process: Rename tracks using mediainfo and mkvpropedit
-    audio_details = extract_audio_tracks_with_mediainfo(output_file)
-    for i, track in enumerate(audio_details):
-        codec = track.get("codec", "Unknown")
-        channels = track.get("channels", "")
-        name = f"{codec} {channels}ch" if channels else codec
-        subprocess.run(
-            [
-                "mkvpropedit",
-                output_file,
-                "--edit",
-                f"track:a{i + 1}",
-                "--set",
-                f"name={name}",
-            ]
-        )
+    # Post-process: Extract information using MediaInfo
+    audio_details = extract_tracks_with_mediainfo(output_file, "audio")
+    subtitle_details = extract_tracks_with_mediainfo(
+        output_file, "text"
+    )  # "text" refers to subtitles
 
-    # Ensure only one default subtitle track
-    cmd_identify = ["mkvmerge", "-i", output_file]
-    process = subprocess.run(cmd_identify, capture_output=True, text=True)
-    output_info = process.stdout.splitlines()
+    # Rename audio tracks & set default audio
+    if audio_details:
+        default_audio_id = max(
+            audio_details, key=lambda track: int(track.get("channels", 0))
+        )["id"]  # Use the audio track with most channels as default
 
-    subtitle_tracks = {}
-    for line in output_info:
-        if "subtitles" in line:
-            match = re.search(r"Track ID (\d+):", line)
-            if match:
-                track_id = int(match.group(1))
-                subtitle_tracks[track_id] = line
+        for track in audio_details:
+            track_id = int(track["id"]) + 1  # Adjust for Matroska's track indexing
+            codec = track.get("codec", "Unknown")
+            channels = track.get("channels", "")
+            name = f"{codec} {channels}ch" if channels else codec
 
-    if subtitle_tracks:
-        default_track_id = list(subtitle_tracks.keys())[
-            0
-        ]  # Use the first subtitle track as default
-        for track_id in subtitle_tracks:
-            is_default = track_id == default_track_id
+            # Set name
+            subprocess.run(
+                [
+                    "mkvpropedit",
+                    output_file,
+                    "--edit",
+                    f"track:a{track_id}",
+                    "--set",
+                    f"name={name}",
+                ]
+            )
+
+            # Set default audio track
+            is_default = track["id"] == default_audio_id
+            subprocess.run(
+                [
+                    "mkvpropedit",
+                    output_file,
+                    "--edit",
+                    f"track:a{track_id}",
+                    "--set",
+                    f"flag-default={'1' if is_default else '0'}",
+                ]
+            )
+
+    # Set default subtitle track
+    if subtitle_details:
+        default_subtitle_id = None
+
+        # Find Simplified Chinese first
+        for track in subtitle_details:
+            if track["language"] == "zh-CN":
+                default_subtitle_id = track["id"]
+                break
+
+        # If no Simplified Chinese found, use the first subtitle track
+        if default_subtitle_id is None:
+            default_subtitle_id = subtitle_details[0]["id"]
+
+        # Set or unset default flag
+        for track in subtitle_details:
+            track_id = int(track["id"]) + 1  # Adjust for Matroska's track indexing
+            is_default = track["id"] == default_subtitle_id
             subprocess.run(
                 [
                     "mkvpropedit",
