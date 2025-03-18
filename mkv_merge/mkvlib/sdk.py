@@ -1,5 +1,5 @@
 import os
-from ctypes import CDLL, CFUNCTYPE, c_byte, c_char_p
+from ctypes import CDLL, CFUNCTYPE, c_char_p, c_ubyte
 from json import dumps, loads
 
 libpath = os.path.join(os.path.dirname(__file__), "mkvlib.so")
@@ -7,7 +7,7 @@ lib = CDLL(libpath)
 
 
 def _lcb(lcb):
-    @CFUNCTYPE(None, c_byte, c_char_p)
+    @CFUNCTYPE(None, c_ubyte, c_char_p)
     def logcallback(l, s):  # noqa: E741
         if lcb:
             lcb(l, s.decode())
