@@ -126,7 +126,8 @@ def main():
     subtitle_count = len(subtitles)
     for i, sub in enumerate(subtitles):
         track_num = audio_count + 1 + i
-        track_params.append(f'--track-name "{track_num}:{sub["track_name"]}"')
+        # 移除引号并修正轨道ID计算
+        track_params.append(f"--track-name {track_num}:{sub['track_name']}")
         track_params.append(f"--language {track_num}:{sub['language']}")
         if sub == default_sub:
             track_params.append(f"--default-track {track_num}:yes")
@@ -135,11 +136,10 @@ def main():
 
     # 音频轨道默认设置
     if default_audio:
-        merged_id = (
-            default_audio["track_id"]
-            if default_audio["file"] == video_file
-            else (len(video_audio) + default_audio["track_id"])
-        )
+        if default_audio["file"] == video_file:
+            merged_id = default_audio["track_id"]
+        else:
+            merged_id = len(video_audio) + default_audio["track_id"]
         track_params.append(f"--default-track {merged_id}:yes")
 
     # 处理FLAC轨道重命名
@@ -147,12 +147,11 @@ def main():
         if track["codec"].lower() == "flac" and not track["name"]:
             channels = track["channels"]
             new_name = f"{channels if channels != 6 else '5.1'}ch"
-            merged_id = (
-                track["track_id"]
-                if track["file"] == video_file
-                else (len(video_audio) + track["track_id"])
-            )
-            track_params.append(f'--track-name "{merged_id}:{new_name}"')
+            if track["file"] == video_file:
+                merged_id = track["track_id"]
+            else:
+                merged_id = len(video_audio) + track["track_id"]
+            track_params.append(f"--track-name {merged_id}:{new_name}")
 
     # 处理AAC轨道重命名
     aac_tracks = [t for t in all_audio if t["codec"].lower() == "aac"]
@@ -161,15 +160,15 @@ def main():
             names = ["声优评论", "监督评论", "军事评论"]
             new_name = names[idx] if idx < len(names) else ""
             if new_name:
-                merged_id = (
-                    track["track_id"]
-                    if track["file"] == video_file
-                    else (len(video_audio) + track["track_id"])
-                )
-                track_params.append(f'--track-name "{merged_id}:{new_name}"')
+                if track["file"] == video_file:
+                    merged_id = track["track_id"]
+                else:
+                    merged_id = len(video_audio) + track["track_id"]
+                track_params.append(f"--track-name {merged_id}:{new_name}")
 
     # 添加所有参数到命令
     cmd.extend(track_params)
+    print(cmd)
 
     # 执行命令
     subprocess.run(cmd, check=True)
