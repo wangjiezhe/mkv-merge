@@ -78,9 +78,6 @@ def main():
 
     command = ["mkvmerge", "-o", output_mkv]
 
-    # Add video tracks from input mkv
-    command.extend([input_mkv])
-
     # Add audio tracks
     audio_tracks = []
     audio_tracks_orig = []
@@ -103,27 +100,6 @@ def main():
             )
             audio_tracks_orig.append(track)
 
-    if os.path.exists(input_mka):
-        result = subprocess.run(
-            ["mkvmerge", "--identify", "--identification-format", "json", input_mka],
-            capture_output=True,
-            text=True,
-        )
-        data = json.loads(result.stdout)
-
-        for track in data["tracks"]:
-            if track["type"] == "audio":
-                audio_tracks.append(
-                    {
-                        "id": f"{input_mka}:{track['id']}",
-                        "codec": track["codec"],
-                        "channels": track["properties"]["audio_channels"],
-                        "name": track["properties"].get("track_name", ""),
-                        "language": track["properties"].get("language", "und"),
-                    }
-                )
-            audio_tracks_orig.append(track)
-
     for track in audio_tracks_orig:
         info = get_audio_track_info(track)
         command.extend(
@@ -134,6 +110,46 @@ def main():
                 f"{info['number']}:{info['name']}",
             ]
         )
+
+    command.extend([input_mkv])
+
+    if os.path.exists(input_mka):
+        result = subprocess.run(
+            ["mkvmerge", "--identify", "--identification-format", "json", input_mka],
+            capture_output=True,
+            text=True,
+        )
+        data = json.loads(result.stdout)
+
+        audio_tracks_mka = []
+        audio_tracks_orig_mka = []
+        for track in data["tracks"]:
+            if track["type"] == "audio":
+                audio_tracks_mka.append(
+                    {
+                        "id": f"{input_mka}:{track['id']}",
+                        "codec": track["codec"],
+                        "channels": track["properties"]["audio_channels"],
+                        "name": track["properties"].get("track_name", ""),
+                        "language": track["properties"].get("language", "und"),
+                    }
+                )
+                audio_tracks_orig_mka.append(track)
+
+        audio_tracks.extend(audio_tracks_mka)
+        audio_tracks_orig.extend(audio_tracks_orig_mka)
+        for track in audio_tracks_orig_mka:
+            info = get_audio_track_info(track)
+            command.extend(
+                [
+                    "--language",
+                    f"{info['number']}:{info['language']}",
+                    "--track-name",
+                    f"{info['number']}:{info['name']}",
+                ]
+            )
+
+        command.extend([input_mka])
 
     # Add subtitle tracks
     subtitle_tracks = []
