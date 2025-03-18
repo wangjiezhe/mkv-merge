@@ -50,10 +50,7 @@ def process_files():
         print("Error: PV01.mkv not found")
         return
 
-    # 构建mkvmerge命令
-    cmd = ["mkvmerge", "-o", "dist/PV01.mkv"]
-
-    # 处理主MKV文件
+    # 获取主MKV文件信息
     video_info = get_track_info("PV01.mkv")
     if video_info is None:
         return
@@ -80,10 +77,8 @@ def process_files():
                 max_channel_count = channel_count
                 default_audio_track_id = track["id"]
 
-    # 添加视频文件
-    cmd.extend(["PV01.mkv"])
-
     # 处理MKA文件(如果存在)
+    mka_tracks = []
     if os.path.exists("PV01.mka"):
         audio_info = get_track_info("PV01.mka")
         if audio_info is not None:
@@ -104,11 +99,6 @@ def process_files():
                         default_audio_track_id = (
                             None  # 如果MKA中有更多声道，将重置默认ID
                         )
-
-            # 添加MKA文件
-            cmd.extend(
-                ["--append-to", f"0:{len(video_info.get('tracks', []))}", "PV01.mka"]
-            )
 
     # 收集字幕文件
     subtitle_files = []
@@ -145,17 +135,6 @@ def process_files():
     if len(subtitle_files) == 1:
         default_subtitle_id = 0
 
-    # 添加字幕文件
-    for idx, subtitle in enumerate(subtitle_files):
-        lang_param = f"--language=0:{subtitle['lang_code']}"
-        name_param = f"--track-name=0:{subtitle['name']}"
-        default_param = (
-            "--default-track=0:yes"
-            if idx == default_subtitle_id
-            else "--default-track=0:no"
-        )
-        cmd.extend([lang_param, name_param, default_param, subtitle["path"]])
-
     # 收集字体文件
     font_files = []
     if subsetted_dir.exists() and subsetted_dir.is_dir():
@@ -164,6 +143,115 @@ def process_files():
         for ext in font_extensions:
             for file in subsetted_dir.glob(f"*{ext}"):
                 font_files.append(str(file))
+
+    # 构建mkvmerge命令，使用正确的参数顺序
+    cmd = ["mkvmerge", "-o", "dist/PV01.mkv"]
+
+    # 添加视频文件及其轨道选项
+    video_track_options = []
+
+    # 设置音频轨道名称和默认轨道
+    aac_names = ["声优评论", "监督评论", "军事评论"]
+    aac_count = 0
+
+    for track in all_audio_tracks:
+        if track["file"] == "PV01.mkv":
+            track_id = track["id"]
+
+            # 设置默认轨道
+            is_default = track_id == default_audio_track_id
+            if is_default:
+                video_track_options.append(f"--default-track={track_id}:yes")
+            else:
+                video_track_options.append(f"--default-track={track_id}:no")
+
+            # 设置轨道名称（如果原来没有名称）
+            if not track["name"]:
+                if track["codec"] == "FLAC":
+                    # 根据声道数设置FLAC轨道名称
+                    channels = track["channel_count"]
+                    if channels == 6:
+                        name = "5.1ch"
+                    elif channels == 3:
+                        name = "2.1ch"
+                    elif channels == 2:
+                        name = "2ch"
+                    else:
+                        name = f"{channels}ch"
+
+                    video_track_options.append(f"--track-name={track_id}:{name}")
+
+                elif track["codec"] == "AAC":
+                    # 为AAC轨道设置名称
+                    if aac_count < len(aac_names):
+                        video_track_options.append(
+                            f"--track-name={track_id}:{aac_names[aac_count]}"
+                        )
+                        aac_count += 1
+
+    # 先添加轨道选项，然后再添加文件名
+    cmd.extend(video_track_options)
+    cmd.append("PV01.mkv")
+
+    # 添加MKA文件(如果存在)及其轨道选项
+    if os.path.exists("PV01.mka"):
+        mka_track_options = []
+
+        for track in all_audio_tracks:
+            if track["file"] == "PV01.mka":
+                track_id = track["id"]
+
+                # 设置默认轨道
+                is_default = (
+                    default_audio_track_id is None
+                    and track["channel_count"] == max_channel_count
+                )
+                if is_default:
+                    mka_track_options.append(f"--default-track={track_id}:yes")
+                else:
+                    mka_track_options.append(f"--default-track={track_id}:no")
+
+                # 设置轨道名称（如果原来没有名称）
+                if not track["name"]:
+                    if track["codec"] == "FLAC":
+                        # 根据声道数设置FLAC轨道名称
+                        channels = track["channel_count"]
+                        if channels == 6:
+                            name = "5.1ch"
+                        elif channels == 3:
+                            name = "2.1ch"
+                        elif channels == 2:
+                            name = "2ch"
+                        else:
+                            name = f"{channels}ch"
+
+                        mka_track_options.append(f"--track-name={track_id}:{name}")
+
+                    elif track["codec"] == "AAC":
+                        # 为AAC轨道设置名称
+                        if aac_count < len(aac_names):
+                            mka_track_options.append(
+                                f"--track-name={track_id}:{aac_names[aac_count]}"
+                            )
+                            aac_count += 1
+
+        # 先添加轨道选项，然后再添加文件名
+        cmd.extend(mka_track_options)
+        cmd.extend(
+            ["--append-to", f"0:{len(video_info.get('tracks', []))}", "PV01.mka"]
+        )
+
+    # 添加字幕文件
+    for idx, subtitle in enumerate(subtitle_files):
+        # 先添加轨道选项，然后再添加文件名
+        cmd.extend(
+            [
+                f"--language=0:{subtitle['lang_code']}",
+                f"--track-name=0:{subtitle['name']}",
+                f"--default-track=0:{'yes' if idx == default_subtitle_id else 'no'}",
+                subtitle["path"],
+            ]
+        )
 
     # 添加字体文件附件
     for font_file in font_files:
@@ -178,57 +266,6 @@ def process_files():
                 font_file,
             ]
         )
-
-    # 设置音频轨道名称和默认轨道
-    aac_names = ["声优评论", "监督评论", "军事评论"]
-    aac_count = 0
-
-    for idx, track in enumerate(all_audio_tracks):
-        track_id = track["id"]
-        file_index = cmd.index(track["file"])
-
-        # 设置默认轨道
-        is_default = False
-        if track["file"] == "PV01.mkv" and track_id == default_audio_track_id:
-            is_default = True
-        elif (
-            track["file"] == "PV01.mka"
-            and default_audio_track_id is None
-            and track["channel_count"] == max_channel_count
-        ):
-            is_default = True
-            default_audio_track_id = track_id
-
-        default_param = (
-            f"--default-track={track_id}:yes"
-            if is_default
-            else f"--default-track={track_id}:no"
-        )
-        cmd.insert(file_index, default_param)
-
-        # 设置轨道名称（如果原来没有名称）
-        if not track["name"]:
-            if track["codec"] == "FLAC":
-                # 根据声道数设置FLAC轨道名称
-                channels = track["channel_count"]
-                if channels == 6:
-                    name = "5.1ch"
-                elif channels == 3:
-                    name = "2.1ch"
-                elif channels == 2:
-                    name = "2ch"
-                else:
-                    name = f"{channels}ch"
-
-                name_param = f"--track-name={track_id}:{name}"
-                cmd.insert(file_index, name_param)
-
-            elif track["codec"] == "AAC":
-                # 为AAC轨道设置名称
-                if aac_count < len(aac_names):
-                    name_param = f"--track-name={track_id}:{aac_names[aac_count]}"
-                    cmd.insert(file_index, name_param)
-                    aac_count += 1
 
     # 执行命令
     print(f"Executing command: {' '.join(cmd)}")
