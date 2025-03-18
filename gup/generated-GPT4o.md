@@ -78,8 +78,12 @@ Attachment ID 2: type 'font/ttf', size 16224 bytes, file name '微软雅黑.7KKL
 
 ## 手动修正
 
-原因找到了，`mkvproedit` 在指定 `--track` 时，有两种方式，`--track:2` 和 `--track:a1`，前者指的是整个文件的第2个轨道，后者指的是第1个音频轨道。
+原因找到了，`mkvproedit` 在指定 `track` 时，有两种方式，`track:2` 和 `track:a1`，前者指的是整个文件的第2个轨道，后者指的是第1个音频轨道。
 
 这里应该使用前者，而不是后者。
 
 更正之后就没有问题了。
+
+## 第8轮
+
+然而，把这点告诉 GPT 之后，`track` 的调用确实改正了，但是又把之前已经修改的 `track_id+1` 又给该回去了。。。
