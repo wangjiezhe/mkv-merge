@@ -112,49 +112,39 @@ def main():
     if mka_file:
         cmd.append(mka_file)
 
-    # 添加字幕轨道并设置参数（参数紧跟文件）
-    audio_count = len(all_audio)
+    # 处理字幕轨道参数（参数在文件之前）
     for i, sub in enumerate(subtitles):
-        track_num = audio_count + 1 + i
-        cmd.append(sub["file"])
+        # 计算轨道ID：音频轨道数量 + 1 + i
+        track_num = len(all_audio) + 1 + i
+        # 添加参数到命令
         cmd.append(f"--track-name {track_num}:{sub['track_name']}")
         cmd.append(f"--language {track_num}:{sub['language']}")
         if sub == default_sub:
             cmd.append(f"--default-track {track_num}:yes")
         else:
             cmd.append(f"--default-track {track_num}:no")
+        # 添加字幕文件到命令
+        cmd.append(sub["file"])
 
-    # 处理音频轨道默认设置
+    # 处理音频轨道默认设置（使用源文件的轨道ID）
     if default_audio:
-        if default_audio["file"] == video_file:
-            merged_id = default_audio["track_id"]
-        else:
-            merged_id = len(video_audio) + default_audio["track_id"]
-        cmd.append(f"--default-track {merged_id}:yes")
+        cmd.append(f"--default-track {default_audio['track_id']}:yes")
 
-    # 处理FLAC轨道重命名
+    # 处理FLAC轨道重命名（使用源文件的轨道ID）
     for track in all_audio:
         if track["codec"].lower() == "flac" and not track["name"]:
             channels = track["channels"]
             new_name = f"{channels if channels != 6 else '5.1'}ch"
-            if track["file"] == video_file:
-                merged_id = track["track_id"]
-            else:
-                merged_id = len(video_audio) + track["track_id"]
-            cmd.append(f"--track-name {merged_id}:{new_name}")
+            cmd.append(f"--track-name {track['track_id']}:{new_name}")
 
-    # 处理AAC轨道重命名
+    # 处理AAC轨道重命名（使用源文件的轨道ID）
     aac_tracks = [t for t in all_audio if t["codec"].lower() == "aac"]
     for idx, track in enumerate(aac_tracks):
         if not track["name"]:
             names = ["声优评论", "监督评论", "军事评论"]
             new_name = names[idx] if idx < len(names) else ""
             if new_name:
-                if track["file"] == video_file:
-                    merged_id = track["track_id"]
-                else:
-                    merged_id = len(video_audio) + track["track_id"]
-                cmd.append(f"--track-name {merged_id}:{new_name}")
+                cmd.append(f"--track-name {track['track_id']}:{new_name}")
 
     # 添加字体文件作为附加文件（必须放在最后）
     for font in fonts:

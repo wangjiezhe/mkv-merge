@@ -27,3 +27,4 @@ uv.lock
 gup/*
 !gup/*.py
 !gup/prompt.txt
+!gup/*.md
