@@ -6,6 +6,4 @@
     "strings": "on"
   },
   "python.analysis.autoImportCompletions": true,
-  "flake8.enabled": false,
-  "ruff.enable": true
 }

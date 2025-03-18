@@ -18,3 +18,6 @@ artifacts = ["**.so"]
 
 [tool.hatch.build.targets.sdist]
 exclude = ["third-party"]
+
+[tool.ruff]
+exclude = ["third-party"]
