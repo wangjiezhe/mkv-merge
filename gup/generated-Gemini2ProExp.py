@@ -1,3 +1,4 @@
+import json
 import os
 import re
 import subprocess
@@ -16,9 +17,12 @@ def get_track_info(file_path, track_type):
     """
     command = ["mkvmerge", "-i", "-F", "json", file_path]
     result = subprocess.run(command, capture_output=True, text=True)
-    output_json = result.stdout
-    import json
 
+    # 检查 mkvmerge 是否成功执行
+    if result.returncode != 0:
+        raise Exception(f"mkvmerge 执行失败: {result.stderr}")
+
+    output_json = result.stdout
     info = json.loads(output_json)
 
     tracks = []
@@ -120,9 +124,9 @@ def generate_mkvmerge_command(
     if input_mka:
         command.append(input_mka)
         if default_audio_track_id is not None and is_mka:
-            command.extend(["--default-track", f"0:yes"])  # MKA 中的第一轨通常是 0
+            command.extend(["--default-track", "0:yes"])  # MKA 中的第一轨通常是 0
         else:
-            command.extend(["--default-track", f"0:no"])
+            command.extend(["--default-track", "0:no"])
 
     # 添加字幕文件
     subtitle_tracks_count = 0
@@ -148,6 +152,8 @@ def generate_mkvmerge_command(
                         or track["properties"]["language_ietf"] == "zh-Hant"
                     ):
                         command.extend(["--track-name", f"{track['id']}:繁体中文"])
+                    else:
+                        command.extend(["--track-name", f"{track['id']}:未知"])
                 else:
                     command.extend(["--track-name", f"{track['id']}:未知"])
             else:
@@ -179,6 +185,7 @@ def generate_mkvmerge_command(
             )
         elif lang_code in language_map:
             lang, name = language_map[lang_code]
+            # 使用 --language 替代 --language-ietf
             command.extend(
                 [
                     "--language",
@@ -188,14 +195,7 @@ def generate_mkvmerge_command(
                     subtitle,
                 ]
             )
-            # 语言代码映射
-            if lang_code in lang_ietf_map:
-                command.extend(
-                    [
-                        "--language-ietf",
-                        f"{subtitle_tracks_count - 1}:{lang_ietf_map[lang_code]}",
-                    ]
-                )
+
             if lang == "zho" and name == "简体中文" and not default_subtitle_set:
                 command.extend(["--default-track", f"{subtitle_tracks_count - 1}:yes"])
                 default_subtitle_set = True
@@ -217,7 +217,6 @@ def generate_mkvmerge_command(
     # 只有一个字幕轨道，则设为默认
     if subtitle_tracks_count == 1 and not default_subtitle_set:
         command.extend(["--default-track", f"{subtitle_tracks_count - 1}:yes"])
-
     # 添加字体文件
     for font in font_files:
         command.extend(
@@ -248,7 +247,8 @@ def rename_aac_tracks(mkv_file):
     names = ["声优评论", "监督评论", "军事评论"]
 
     # 构建一个临时的 mkvmerge 命令来重命名轨道
-    temp_command = ["mkvmerge", "-o", "temp.mkv", mkv_file]
+    # 添加 -y 参数，如果输出文件存在则覆盖
+    temp_command = ["mkvmerge", "-y", "-o", "temp.mkv", mkv_file]
 
     for i, track in enumerate(aac_tracks):
         if i < len(names):
@@ -256,7 +256,7 @@ def rename_aac_tracks(mkv_file):
     # 如果音轨数量大于名称数量，剩余的音轨使用默认名称或其他逻辑
 
     # 执行临时命令来应用更改
-    subprocess.run(temp_command, capture_output=True, text=True)
+    subprocess.run(temp_command)
     # 替换原始文件
     os.replace("temp.mkv", mkv_file)
 
@@ -282,9 +282,14 @@ def main():
     command = generate_mkvmerge_command(
         input_mkv, input_mka, subtitle_files, font_files, output_mkv
     )
-    subprocess.run(
+    print("执行的命令:", " ".join(command))  # 调试：打印生成的命令
+    result = subprocess.run(
         command, capture_output=True, text=True
     )  # 使用 capture_output=True 捕获输出
+    if result.returncode != 0:
+        print(f"mkvmerge 错误输出: {result.stderr}")  # 打印错误
+    else:
+        print(f"mkvmerge 标准输出: {result.stdout}")  # 打印输出
 
     # 重命名 AAC 音轨
     rename_aac_tracks(output_mkv)
