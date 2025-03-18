@@ -113,11 +113,6 @@ def main():
     for sub in subtitles:
         cmd.append(sub["file"])
 
-    # 添加字体文件作为附加文件
-    for font in fonts:
-        cmd.extend(["--attach-file", font])
-        cmd.extend(["--attachment-mime-type", "application/x-truetype-font"])
-
     # 处理轨道参数
     track_params = []
 
@@ -126,7 +121,6 @@ def main():
     subtitle_count = len(subtitles)
     for i, sub in enumerate(subtitles):
         track_num = audio_count + 1 + i
-        # 移除引号并修正轨道ID计算
         track_params.append(f"--track-name {track_num}:{sub['track_name']}")
         track_params.append(f"--language {track_num}:{sub['language']}")
         if sub == default_sub:
@@ -166,11 +160,16 @@ def main():
                     merged_id = len(video_audio) + track["track_id"]
                 track_params.append(f"--track-name {merged_id}:{new_name}")
 
-    # 添加所有参数到命令
+    # 添加轨道参数到命令（必须在附加文件之前）
     cmd.extend(track_params)
-    print(cmd)
+
+    # 添加字体文件作为附加文件
+    for font in fonts:
+        cmd.extend(["--attach-file", font])
+        cmd.extend(["--attachment-mime-type", "application/x-truetype-font"])
 
     # 执行命令
+    print("Final command:", " ".join(cmd))
     subprocess.run(cmd, check=True)
 
 
