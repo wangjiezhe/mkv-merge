@@ -21,3 +21,8 @@ exclude = ["third-party"]
 
 [tool.ruff]
 exclude = ["third-party"]
+
+[dependency-groups]
+dev = [
+    "colorama>=0.4.6",
+]
