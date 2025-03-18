@@ -91,9 +91,20 @@ def remux_with_mkvtoolnix():
 
     # Add font attachments
     for font_file in font_files:
-        args.extend(["--attachment-name", os.path.basename(font_file), font_file])
+        # Ensure the attachment name in the output is unique
+        attachment_name = os.path.basename(font_file)
+        attachment_name += f"_{hash(font_file)}"  # Append hash to ensure uniqueness
+
+        # Check if the file extension is valid (ttf, otf, ttc); otherwise, skip it
+        if not re.search(r"\.(ttf|otf|ttc)$", font_file, re.IGNORECASE):
+            print(f"Skipping unsupported font file: {font_file}")
+            continue
+
+        # Add font file as attachment with unique name
+        args.extend(["--attachment-name", attachment_name, font_file])
 
     # Execute mkvmerge command to create the new file
+    print(" ".join(args))
     subprocess.run(args)
 
     # Post-processing: Analyze and adjust default tracks and naming
