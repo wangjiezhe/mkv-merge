@@ -33,3 +33,9 @@ mkvmerge -o dist/PV01_final.mkv --no-subtitles --no-audio PV01.mkv --no-audio --
 ```
 
 错误是 `--attachment-name` 后面同时给了名称和文件地址，而实际上文件地址需要通过 `--attach-file` 传递。
+
+## 第3轮
+
+对话：提供给上面的错误原因
+
+结果程序正常运行，但是生成的视频没有音频轨道，而且两个字幕轨道都被设为默认轨道。
