@@ -1,9 +1,13 @@
 import json
 import os
 import subprocess
+import tempfile
 from itertools import chain
 from pathlib import Path
 from typing import Tuple
+
+from mkv_merge.logging import lcb
+from mkv_merge.mkvlib import sdk
 
 
 def get_track_info(file_path: str):
@@ -38,10 +42,10 @@ def process_subtitle_language(filename: str) -> Tuple[str, str]:
         return "und", "未知语言"
 
 
-def create_mkv(video_file: str, subtitle_and_font_dir: str, output_dir: str):
-    video_name = Path(video_file).stem
+def create_mkv(video_file: str, output_dir: str, font_dir: str):
     audio_file = Path(video_file).with_suffix(".mka").as_posix()
-    output_file = output_dir / video_file
+    output_file = os.path.join(output_dir, Path(video_file).name)
+    subsetted_dir = tempfile.mkdtemp(prefix="subsetted-")
 
     # Base command
     cmd = ["mkvmerge", "-o", output_file]
@@ -58,10 +62,35 @@ def create_mkv(video_file: str, subtitle_and_font_dir: str, output_dir: str):
         cmd.extend([audio_file])
 
     # Handle subtitles
-    for sub_file in chain(
-        subtitle_and_font_dir.glob(f"{video_name}.ass"),
-        subtitle_and_font_dir.glob(f"{video_name}.*.ass"),
-    ):
+    video_stem = Path(video_file).stem
+    video_dir = Path(video_file).parent
+    subtitle_files = list(
+        chain(
+            video_dir.glob(f"{video_stem}.ass"),
+            video_dir.glob(f"{video_stem}.*.ass"),
+        )
+    )
+
+    # Sort subtitle files based on language preference
+    language_order = ["日本語", "简体中文", "繁體中文", "监督评论"]
+    subtitle_files.sort(
+        key=lambda f: language_order.index(process_subtitle_language(f.name)[1])
+        if process_subtitle_language(f.name)[1] in language_order
+        else len(language_order)
+    )
+
+    # 子集化字体
+    is_success = sdk.assFontSubset(
+        [ass.as_posix() for ass in subtitle_files],
+        font_dir,
+        subsetted_dir,
+        False,
+        lcb,
+    )
+    if not is_success:
+        raise RuntimeError("Font subset failed.")
+
+    for sub_file in subtitle_files:
         lang_code, track_name = process_subtitle_language(sub_file.name)
         cmd.extend(["--language", f"0:{lang_code}", "--sub-charset", "0:UTF-8"])
         cmd.extend(["--track-name", f"0:{track_name}"])
@@ -70,14 +99,14 @@ def create_mkv(video_file: str, subtitle_and_font_dir: str, output_dir: str):
     # Handle fonts
     font_files = [
         f
-        for f in os.listdir(subtitle_and_font_dir)
+        for f in os.listdir(subsetted_dir)
         if f.lower().endswith((".otf", ".ttf", ".ttc"))
     ]
     if font_files:
         cmd.append("--attachment-mime-type")
         cmd.append("application/x-truetype-font")
         for font in font_files:
-            cmd.extend(["--attach-file", os.path.join(subtitle_and_font_dir, font)])
+            cmd.extend(["--attach-file", os.path.join(subsetted_dir, font)])
 
     # Execute mkvmerge
     print(" ".join(cmd))
