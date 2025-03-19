@@ -25,3 +25,14 @@ KeyError: 'codec'
 mkvmerge v88.0 ('All I Know') 64-bit
 Error: Invalid boolean option specified in '--default-track 0:1:yes'.
 ```
+
+## 第3轮
+
+对话：给出错误信息及 `mkvmerge --help` 的输出结果。
+
+错误信息如下：
+
+```
+mkvmerge v88.0 ('All I Know') 64-bit
+Error: Invalid boolean option specified in '--default-track-flag 0:1:1'.
+```

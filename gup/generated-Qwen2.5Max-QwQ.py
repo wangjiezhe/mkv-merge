@@ -10,8 +10,7 @@ def get_audio_tracks(file, file_index):
     tracks = []
     for track in info["tracks"]:
         if track["type"] == "audio":
-            # 修正 codec 获取位置
-            codec = track["codec"]  # 从顶层获取，而非 properties
+            codec = track["codec"]
             channels = track["properties"].get("audio_channels", 0)
             track_id = track["id"]
             name = track["properties"].get("track_name", "")
@@ -19,7 +18,7 @@ def get_audio_tracks(file, file_index):
                 {
                     "file_index": file_index,
                     "file": file,
-                    "track_id": track["id"],
+                    "track_id": track_id,
                     "codec": codec,
                     "channels": channels,
                     "name": name,
@@ -123,21 +122,21 @@ audio_args = []
 aac_index = 0
 for track in audio_tracks:
     is_default = track == default_audio
-    default_flag = f"--default-track {track['file_index']}:{track['track_id']}:{'yes' if is_default else 'no'}"
+    # 修正 default-track 参数格式
+    default_flag = f"--default-track-flag {track['file_index']}:{track['track_id']}:{1 if is_default else 0}"
     name = track["name"]
     if not name:
-        if track["codec"] == "A_FLAC":
+        if track["codec"] == "FLAC":
             name = f"FLAC {track['channels']}ch"
-        elif track["codec"] == "A_AAC":
+        elif track["codec"] == "AAC":
             if aac_index < 3:
                 name = ["声优评论", "监督评论", "军事评论"][aac_index]
                 aac_index += 1
             else:
                 name = f"AAC Track {aac_index + 1}"
-    if name:
-        name_arg = f"--track-name {track['file_index']}:{track['track_id']}:{name}"
-    else:
-        name_arg = ""
+    name_arg = (
+        f"--track-name {track['file_index']}:{track['track_id']}:{name}" if name else ""
+    )
     audio_args.append(f"{default_flag} {name_arg}")
 
 subtitle_args = []
@@ -145,11 +144,8 @@ for sub in all_subtitles:
     if "file" in sub:
         lang = sub["language"]
         name = sub["name"]
-        default_flag = (
-            "--default-track 0:yes"
-            if sub == default_subtitle
-            else "--default-track 0:no"
-        )
+        # 修正 default-track 参数格式
+        default_flag = f"--default-track-flag 0:{1 if sub == default_subtitle else 0}"
         args = (
             f'--language 0:{lang} --track-name 0:"{name}" {default_flag} {sub["file"]}'
         )
@@ -157,8 +153,9 @@ for sub in all_subtitles:
     else:
         file_index = sub["file_index"]
         track_id = sub["track_id"]
-        default_flag = "yes" if sub == default_subtitle else "no"
-        args = f"--default-track {file_index}:{track_id}:{default_flag}"
+        # 修正 default-track 参数格式
+        default_flag = f"--default-track-flag {file_index}:{track_id}:{1 if sub == default_subtitle else 0}"
+        args = default_flag
         subtitle_args.append(args)
 
 fonts = []
@@ -174,9 +171,9 @@ command = [
     video_file,
     audio_file if os.path.exists(audio_file) else "",
     "--no-subtitles",
-    " ".join(audio_args),
-    " ".join(subtitle_args),
-    " ".join(attach_args),
+    *audio_args,
+    *subtitle_args,
+    *attach_args,
 ]
 
 subprocess.run(" ".join(command), shell=True)
