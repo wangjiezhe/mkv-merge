@@ -20,7 +20,9 @@ if os.path.exists(audio_file):
     command.append(str(audio_file))
 
 # 添加字幕文件
-for sub_file in subtitles_dir.glob("PV01.*.ass"):
+sub_tracks = list(subtitles_dir.glob("PV01.*.ass"))
+default_sub_index = None
+for i, sub_file in enumerate(sub_tracks):
     lang_code = sub_file.stem.split(".")[1]
     if lang_code == "comment":
         track_name = "监督评论"
@@ -29,6 +31,8 @@ for sub_file in subtitles_dir.glob("PV01.*.ass"):
         if lang_code in ["sc", "SC"]:
             lang = "chi"
             track_name = "简体中文"
+            if default_sub_index is None:  # 第一个简体中文轨道设为默认
+                default_sub_index = i
         elif lang_code in ["tc", "TC"]:
             lang = "chi"
             track_name = "繁体中文"
@@ -41,6 +45,12 @@ for sub_file in subtitles_dir.glob("PV01.*.ass"):
     command.extend(
         ["--track-name", f"0:{track_name}", "--language", f"0:{lang}", str(sub_file)]
     )
+
+# 设置默认字幕轨道
+if len(sub_tracks) == 1:
+    command.extend(["--default-track", "0:yes"])
+elif len(sub_tracks) > 1 and default_sub_index is not None:
+    command.extend(["--default-track", f"{default_sub_index}:yes"])
 
 # 添加字体文件
 font_files = (
@@ -58,49 +68,48 @@ for font_file in font_files:
         ]
     )
 
-# 设置默认音频轨道
-command.extend(["--default-track", "0:yes"])
-
-# 设置默认字幕轨道
-sub_tracks = list(subtitles_dir.glob("PV01.*.ass"))
-if len(sub_tracks) == 1:
-    command.extend(["--default-track", "0:yes"])
-elif len(sub_tracks) > 1:
-    for i, sub_file in enumerate(sub_tracks):
-        lang_code = sub_file.stem.split(".")[1]
-        if lang_code in ["sc", "SC"] and lang_code != "comment":
-            command.extend(["--default-track", f"{i}:yes"])
-            break
-
 # 执行mkvmerge命令
 print(" ".join(command))
 subprocess.run(command)
 
+
 # 重命名音频轨道
-info_command = ["mkvinfo", str(output_file)]
-info_output = subprocess.run(info_command, capture_output=True, text=True).stdout
+def get_audio_track_info(mkv_file):
+    """使用mkvinfo获取音频轨道信息"""
+    info_command = ["mkvinfo", str(mkv_file)]
+    info_output = subprocess.run(info_command, capture_output=True, text=True).stdout
+    audio_tracks = []
+    current_track = None
+    for line in info_output.splitlines():
+        if "Track type: audio" in line:
+            if current_track:
+                audio_tracks.append(current_track)
+            current_track = {"index": len(audio_tracks) + 1}
+        elif "Track number:" in line and current_track:
+            current_track["index"] = int(line.split(":")[1].strip().split(" ")[0])
+        elif "Name:" in line and current_track:
+            current_track["name"] = line.split(":")[1].strip()
+        elif "Channels:" in line and current_track:
+            current_track["channels"] = int(line.split(":")[1].strip())
+    if current_track:
+        audio_tracks.append(current_track)
+    return audio_tracks
 
-audio_tracks = []
-for line in info_output.splitlines():
-    if "Track type: audio" in line:
-        audio_tracks.append({"index": len(audio_tracks)})
-    elif "Track number:" in line and audio_tracks:
-        audio_tracks[-1]["index"] = int(line.split(":")[1].strip().split(" ")[0])
-    elif "Name:" in line and audio_tracks:
-        audio_tracks[-1]["name"] = line.split(":")[1].strip()
-    elif "Channels:" in line and audio_tracks:
-        audio_tracks[-1]["channels"] = int(line.split(":")[1].strip())
 
+audio_tracks = get_audio_track_info(output_file)
+
+# 重命名FLAC音频轨道
 for track in audio_tracks:
     if "name" not in track:
-        if track.get("channels", 0) == 2:
+        channels = track.get("channels", 0)
+        if channels == 2:
             track_name = "2ch"
-        elif track.get("channels", 0) == 3:
+        elif channels == 3:
             track_name = "2.1ch"
-        elif track.get("channels", 0) == 6:
+        elif channels == 6:
             track_name = "5.1ch"
         else:
-            track_name = f"{track.get('channels', 0)}ch"
+            track_name = f"{channels}ch"
         command = [
             "mkvpropedit",
             str(output_file),
