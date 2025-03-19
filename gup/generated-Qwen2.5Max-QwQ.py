@@ -122,8 +122,7 @@ audio_args = []
 aac_index = 0
 for track in audio_tracks:
     is_default = track == default_audio
-    # 修正 default-track 参数格式
-    default_flag = f"--default-track-flag {track['file_index']}:{track['track_id']}:{1 if is_default else 0}"
+    default_flag = f"--default-track-flag {track['file_index']}:{track['track_id']}:{'yes' if is_default else 'no'}"
     name = track["name"]
     if not name:
         if track["codec"] == "FLAC":
@@ -144,8 +143,9 @@ for sub in all_subtitles:
     if "file" in sub:
         lang = sub["language"]
         name = sub["name"]
-        # 修正 default-track 参数格式
-        default_flag = f"--default-track-flag 0:{1 if sub == default_subtitle else 0}"
+        default_flag = (
+            f"--default-track-flag 0:{'yes' if sub == default_subtitle else 'no'}"
+        )
         args = (
             f'--language 0:{lang} --track-name 0:"{name}" {default_flag} {sub["file"]}'
         )
@@ -153,10 +153,8 @@ for sub in all_subtitles:
     else:
         file_index = sub["file_index"]
         track_id = sub["track_id"]
-        # 修正 default-track 参数格式
-        default_flag = f"--default-track-flag {file_index}:{track_id}:{1 if sub == default_subtitle else 0}"
-        args = default_flag
-        subtitle_args.append(args)
+        default_flag = f"--default-track-flag {file_index}:{track_id}:{'yes' if sub == default_subtitle else 'no'}"
+        subtitle_args.append(default_flag)
 
 fonts = []
 for f in os.listdir(subtitle_dir):

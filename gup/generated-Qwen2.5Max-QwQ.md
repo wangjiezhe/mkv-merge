@@ -36,3 +36,13 @@ Error: Invalid boolean option specified in '--default-track 0:1:yes'.
 mkvmerge v88.0 ('All I Know') 64-bit
 Error: Invalid boolean option specified in '--default-track-flag 0:1:1'.
 ```
+
+## 第4轮
+
+
+错误信息如下：
+
+```
+mkvmerge v88.0 ('All I Know') 64-bit
+Error: Invalid boolean option specified in '--default-track-flag 0:1:yes'.
+```
