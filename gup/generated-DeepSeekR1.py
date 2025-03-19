@@ -136,40 +136,40 @@ max_channels = max(track["channels"] for track in tracks) if tracks else 0
 default_track = next((t for t in tracks if t["channels"] == max_channels), None)
 aac_tracks = [t for t in tracks if t["codec"].lower() == "aac" and not t["name"]]
 
-command = ["mkvmerge", "-o", output_file, video_input]
+command = ["mkvmerge", "-o", output_file]
+
+# 添加视频文件及其轨道参数
+video_params = [video_input]
+if mkv_info:
+    for track in mkv_info.get("tracks", []):
+        if track["type"] == "audio":
+            track_params = []
+            if track["id"] == default_track["id"]:
+                track_params += ["--default-track", f"0:{track['id']}"]
+            if not track.get("properties", {}).get("track_name"):
+                if track["codec"].lower() == "flac":
+                    name = f"{track['properties']['audio_channels']}ch"
+                    track_params += ["--track-name", f"0:{name}"]
+            video_params.extend(track_params)
+command.extend(video_params)
+
+# 添加音频文件及其轨道参数
 if audio_input:
-    command.append(audio_input)
+    audio_params = [audio_input]
+    if mka_info:
+        for track in mka_info.get("tracks", []):
+            if track["type"] == "audio":
+                track_params = []
+                if track["id"] == default_track["id"]:
+                    track_params += ["--default-track", f"1:{track['id']}"]
+                audio_params.extend(track_params)
+    command.extend(audio_params)
 
-aac_count = 0
-for track in tracks:
-    if track["file"] == video_input and mkv_info:
-        track_cmd = []
-        track_cmd.extend(["--track", str(track["id"])])
-        if track == default_track:
-            track_cmd.extend(["--default-track", "0:1"])
-        else:
-            track_cmd.extend(["--default-track", "0:0"])
-        if not track["name"]:
-            if track["codec"].lower() == "flac":
-                name = f"{track['channels']}ch"
-                track_cmd.extend(["--track-name", f"0:{name}"])
-            elif track["codec"].lower() == "aac":
-                aac_count += 1
-                if aac_count == 1:
-                    name = "声优评论"
-                elif aac_count == 2:
-                    name = "监督评论"
-                elif aac_count == 3:
-                    name = "军事评论"
-                else:
-                    name = None
-                if name:
-                    track_cmd.extend(["--track-name", f"0:{name}"])
-        command.extend(track_cmd)
-
+# 添加字幕
 for opts in subtitle_options:
     command.extend(opts)
 
+# 添加字体
 for font in font_files:
     command.extend(["--attach-file", font])
 
