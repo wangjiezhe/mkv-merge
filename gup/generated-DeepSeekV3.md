@@ -33,3 +33,5 @@ TypeError: unsupported operand type(s) for +: 'generator' and 'generator'
 # 第8/9轮
 
 对话，更正字幕轨道设置。
+
+DeepSeek 已经找不到问题的所在了，只能手动修改了。

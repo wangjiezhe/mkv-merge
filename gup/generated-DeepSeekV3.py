@@ -95,11 +95,12 @@ if sub_track_ids:
     elif len(sub_track_ids) > 1:
         # 如果有多个字幕轨道，找到第一个简体中文轨道并设为默认
         default_sub_index = None
-        for i, track in enumerate(track_info.get("tracks", [])):
-            if (
-                track.get("type") == "subtitles"
-                and track.get("properties", {}).get("language") == "chi"
-            ):
+        for i, track in enumerate(
+            track
+            for track in track_info.get("tracks", [])
+            if track.get("type") == "subtitles"
+        ):
+            if track.get("properties", {}).get("language") == "chi":
                 default_sub_index = i + 1  # 轨道序号从1开始
                 break
         if default_sub_index:
