@@ -7,7 +7,7 @@ requires-python = ">=3.10"
 dependencies = ["hatchling"]
 
 [project.scripts]
-mkv-merge = "mkv_merge.main:main"
+mkv-merge = "mkv_merge.cli:main"
 
 [build-system]
 requires = ["hatchling"]
