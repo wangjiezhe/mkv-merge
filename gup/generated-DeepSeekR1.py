@@ -50,7 +50,7 @@ def set_default_subtitle(output_file):
             "--edit",
             f"track:@{default_id}",
             "--set",
-            "default-track=1",
+            "default-track-flag=1",
         ]
         subprocess.run(cmd)
 
@@ -134,34 +134,57 @@ if audio_input and os.path.exists(audio_input):
 
 max_channels = max(track["channels"] for track in tracks) if tracks else 0
 default_track = next((t for t in tracks if t["channels"] == max_channels), None)
-aac_tracks = [t for t in tracks if t["codec"].lower() == "aac" and not t["name"]]
 
 command = ["mkvmerge", "-o", output_file]
 
-# 添加视频文件及其轨道参数
+# 处理视频文件轨道参数
 video_params = [video_input]
 if mkv_info:
     for track in mkv_info.get("tracks", []):
         if track["type"] == "audio":
             track_params = []
-            if track["id"] == default_track["id"]:
-                track_params += ["--default-track", f"0:{track['id']}"]
+            is_default = track["id"] == default_track["id"] if default_track else False
+            track_params.append(
+                f"--default-track {track['id']}:{1 if is_default else 0}"
+            )
+
             if not track.get("properties", {}).get("track_name"):
                 if track["codec"].lower() == "flac":
                     name = f"{track['properties']['audio_channels']}ch"
-                    track_params += ["--track-name", f"0:{name}"]
+                    track_params.append(f"--track-name {track['id']}:{name}")
+                elif track["codec"].lower() == "aac":
+                    name_map = {1: "声优评论", 2: "监督评论", 3: "军事评论"}
+                    name = name_map.get(len(track_params) + 1)
+                    if name:
+                        track_params.append(f"--track-name {track['id']}:{name}")
+
             video_params.extend(track_params)
 command.extend(video_params)
 
-# 添加音频文件及其轨道参数
+# 处理音频文件轨道参数
 if audio_input:
     audio_params = [audio_input]
     if mka_info:
         for track in mka_info.get("tracks", []):
             if track["type"] == "audio":
                 track_params = []
-                if track["id"] == default_track["id"]:
-                    track_params += ["--default-track", f"1:{track['id']}"]
+                is_default = (
+                    track["id"] == default_track["id"] if default_track else False
+                )
+                track_params.append(
+                    f"--default-track {track['id']}:{1 if is_default else 0}"
+                )
+
+                if not track.get("properties", {}).get("track_name"):
+                    if track["codec"].lower() == "flac":
+                        name = f"{track['properties']['audio_channels']}ch"
+                        track_params.append(f"--track-name {track['id']}:{name}")
+                    elif track["codec"].lower() == "aac":
+                        name_map = {1: "声优评论", 2: "监督评论", 3: "军事评论"}
+                        name = name_map.get(len(track_params) + 1)
+                        if name:
+                            track_params.append(f"--track-name {track['id']}:{name}")
+
                 audio_params.extend(track_params)
     command.extend(audio_params)
 
@@ -173,5 +196,6 @@ for opts in subtitle_options:
 for font in font_files:
     command.extend(["--attach-file", font])
 
+print(" ".join(command))
 subprocess.run(command)
 set_default_subtitle(output_file)

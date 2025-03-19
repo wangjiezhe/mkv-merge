@@ -18,3 +18,16 @@ mkvmerge -o dist/PV01.mkv PV01.mkv --track 1 --default-track 0:1 --track-name 0:
 ## 第2轮
 
 程序能够正常运行，但是音频轨道没有正确命名，两个字幕轨道都设置为了默认轨道。
+
+## 第3轮
+
+对话：给出错误信息， `mkvmerge -J PV01.mp4` 和 `mkvmerge --help` 的输出结果。
+
+这回反而程序出错了。错误信息
+
+```
+mkvmerge v88.0 ('All I Know') 64-bit
+Error: The file '--default-track 1:1' could not be opened for reading: open file error.
+The file is being analyzed.
+Error: The name 'default-track-flag' is not a valid property name for the current edit specification in '--set default-track-flag=1'.
+```
