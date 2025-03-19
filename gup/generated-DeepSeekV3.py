@@ -43,11 +43,12 @@ for sub_file in subtitles_dir.glob("PV01.*.ass"):
     )
 
 # 添加字体文件
-for font_file in (
-    subtitles_dir.glob("*.[oO][tT][fF]")
-    + subtitles_dir.glob("*.[tT][tT][fF]")
-    + subtitles_dir.glob("*.[tT][tT][cC]")
-):
+font_files = (
+    list(subtitles_dir.glob("*.[oO][tT][fF]"))
+    + list(subtitles_dir.glob("*.[tT][tT][fF]"))
+    + list(subtitles_dir.glob("*.[tT][tT][cC]"))
+)
+for font_file in font_files:
     command.extend(
         [
             "--attachment-mime-type",
@@ -72,6 +73,7 @@ elif len(sub_tracks) > 1:
             break
 
 # 执行mkvmerge命令
+print(" ".join(command))
 subprocess.run(command)
 
 # 重命名音频轨道
@@ -107,6 +109,7 @@ for track in audio_tracks:
             "--set",
             f"name={track_name}",
         ]
+        print(" ".join(command))
         subprocess.run(command)
 
 # 重命名AAC音频轨道
@@ -128,4 +131,5 @@ for i, track in enumerate(aac_tracks):
         "--set",
         f"name={track_name}",
     ]
+    print(" ".join(command))
     subprocess.run(command)
