@@ -1,5 +1,6 @@
 import json
 import os
+import shutil
 import subprocess
 import tempfile
 from itertools import chain
@@ -42,7 +43,9 @@ def process_subtitle_language(filename: str) -> Tuple[str, str]:
         return "und", "未知语言"
 
 
-def create_mkv(video_file: str, output_dir: str, font_dir: str):
+def create_mkv(
+    video_file: str, output_dir: str, font_dir: str, save_temp_fonts: bool = False
+):
     audio_file = Path(video_file).with_suffix(".mka").as_posix()
     output_file = os.path.join(output_dir, Path(video_file).name)
     subsetted_dir = tempfile.mkdtemp(prefix="subsetted-")
@@ -178,3 +181,6 @@ def create_mkv(video_file: str, output_dir: str, font_dir: str):
     if len(prop_cmd) > 2:
         print(" ".join(prop_cmd))
         subprocess.run(prop_cmd, check=True)
+
+    if not save_temp_fonts:
+        shutil.rmtree(subsetted_dir)

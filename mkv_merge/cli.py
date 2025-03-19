@@ -62,6 +62,8 @@ def main():
         else:
             raise ValueError(f"Invalid path: {file_or_dir}")
 
+    os.remove(font_cache)
+
 
 if __name__ == "__main__":
     main()
