@@ -21,9 +21,7 @@ if os.path.exists(audio_file):
     command.append(str(audio_file))
 
 # 添加字幕文件
-sub_tracks = list(subtitles_dir.glob("PV01.*.ass"))
-default_sub_index = None
-for i, sub_file in enumerate(sub_tracks):
+for sub_file in subtitles_dir.glob("PV01.*.ass"):
     lang_code = sub_file.stem.split(".")[1]
     if lang_code == "comment":
         track_name = "监督评论"
@@ -32,8 +30,6 @@ for i, sub_file in enumerate(sub_tracks):
         if lang_code in ["sc", "SC"]:
             lang = "chi"
             track_name = "简体中文"
-            if default_sub_index is None:  # 第一个简体中文轨道设为默认
-                default_sub_index = i
         elif lang_code in ["tc", "TC"]:
             lang = "chi"
             track_name = "繁体中文"
@@ -46,12 +42,6 @@ for i, sub_file in enumerate(sub_tracks):
     command.extend(
         ["--track-name", f"0:{track_name}", "--language", f"0:{lang}", str(sub_file)]
     )
-
-# 设置默认字幕轨道
-if len(sub_tracks) == 1:
-    command.extend(["--default-track", "0:yes"])
-elif len(sub_tracks) > 1 and default_sub_index is not None:
-    command.extend(["--default-track", f"{default_sub_index}:yes"])
 
 # 添加字体文件
 font_files = (
@@ -70,7 +60,6 @@ for font_file in font_files:
     )
 
 # 执行mkvmerge命令
-print(" ".join(command))
 subprocess.run(command)
 
 
@@ -83,6 +72,61 @@ def get_track_info(mkv_file):
 
 
 track_info = get_track_info(output_file)
+
+# 单独修改默认字幕轨道设置
+sub_track_ids = [
+    track.get("id")
+    for track in track_info.get("tracks", [])
+    if track.get("type") == "subtitles"
+]
+if sub_track_ids:
+    if len(sub_track_ids) == 1:
+        # 如果只有一个字幕轨道，将其设为默认
+        subprocess.run(
+            [
+                "mkvpropedit",
+                str(output_file),
+                "--edit",
+                f"track:s{sub_track_ids[0]}",
+                "--set",
+                "flag-default=1",
+            ]
+        )
+    elif len(sub_track_ids) > 1:
+        # 如果有多个字幕轨道，找到第一个简体中文轨道并设为默认
+        default_sub_id = None
+        for track in track_info.get("tracks", []):
+            if (
+                track.get("type") == "subtitles"
+                and track.get("properties", {}).get("language") == "chi"
+            ):
+                default_sub_id = track.get("id")
+                break
+        if default_sub_id:
+            # 设置默认轨道
+            subprocess.run(
+                [
+                    "mkvpropedit",
+                    str(output_file),
+                    "--edit",
+                    f"track:s{default_sub_id}",
+                    "--set",
+                    "flag-default=1",
+                ]
+            )
+            # 将其他字幕轨道设为非默认
+            for sub_id in sub_track_ids:
+                if sub_id != default_sub_id:
+                    subprocess.run(
+                        [
+                            "mkvpropedit",
+                            str(output_file),
+                            "--edit",
+                            f"track:s{sub_id}",
+                            "--set",
+                            "flag-default=0",
+                        ]
+                    )
 
 # 重命名音频轨道
 audio_tracks = []

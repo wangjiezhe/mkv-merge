@@ -24,3 +24,8 @@ TypeError: unsupported operand type(s) for +: 'generator' and 'generator'
 
 这回音频轨道的名称对了，默认字幕轨道的问题还是没有解决。
 
+## 第5/6/7轮
+
+对话：要求合并后单独修改默认字幕轨道。
+
+问题还是没有解决。
