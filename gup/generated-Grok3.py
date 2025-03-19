@@ -84,7 +84,7 @@ def main():
             cmd.extend(["--attach-file", os.path.join(subtitle_dir, font)])
 
     # Execute mkvmerge
-    print(cmd)
+    print(" ".join(cmd))
     subprocess.run(cmd, check=True)
 
     # Post-processing with mkvpropedit
@@ -148,7 +148,7 @@ def main():
 
     # Execute mkvpropedit
     if len(prop_cmd) > 2:
-        print(prop_cmd)
+        print(" ".join(prop_cmd))
         subprocess.run(prop_cmd, check=True)
 
 

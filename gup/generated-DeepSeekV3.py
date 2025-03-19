@@ -6,10 +6,10 @@ from pathlib import Path
 
 # 定义输入文件和输出目录
 video_file = "PV01.mkv"
-audio_file = "PV01.mka"
+audio_file = Path(video_file).with_suffix(".mka").as_posix()
 subtitles_dir = Path("dist/subsetted")
 output_dir = Path("dist")
-output_file = output_dir / "PV01_merged.mkv"
+output_file = output_dir / f"{Path(video_file).stem}_merged.mkv"
 
 # 确保输出目录存在
 output_dir.mkdir(parents=True, exist_ok=True)
@@ -61,6 +61,7 @@ for font_file in font_files:
     )
 
 # 执行mkvmerge命令
+print(" ".join(command))
 subprocess.run(command)
 
 
@@ -83,16 +84,16 @@ sub_track_ids = [
 if sub_track_ids:
     if len(sub_track_ids) == 1:
         # 如果只有一个字幕轨道，将其设为默认
-        subprocess.run(
-            [
-                "mkvpropedit",
-                str(output_file),
-                "--edit",
-                "track:s1",
-                "--set",
-                "flag-default=1",
-            ]
-        )
+        cmd = [
+            "mkvpropedit",
+            str(output_file),
+            "--edit",
+            "track:s1",
+            "--set",
+            "flag-default=1",
+        ]
+        print(" ".join(cmd))
+        subprocess.run(cmd)
     elif len(sub_track_ids) > 1:
         # 如果有多个字幕轨道，找到第一个简体中文轨道并设为默认
         default_sub_index = None
@@ -166,6 +167,7 @@ for track in audio_tracks:
             "--set",
             f"name={track_name}",
         ]
+        print(" ".join(command))
         subprocess.run(command)
 
 # 重命名AAC音频轨道
@@ -191,4 +193,5 @@ for i, track in enumerate(aac_tracks):
         "--set",
         f"name={track_name}",
     ]
+    print(" ".join(command))
     subprocess.run(command)
