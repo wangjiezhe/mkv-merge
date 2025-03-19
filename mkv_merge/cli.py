@@ -8,7 +8,7 @@ from mkv_merge.logging import lcb
 from mkv_merge.mkvlib import sdk
 
 
-def _init_temp(prefix, suffix):
+def _create_temp_file(prefix, suffix):
     f, path = tempfile.mkstemp(prefix=prefix, suffix=suffix)
     os.close(f)
     return path
@@ -25,11 +25,6 @@ def main():
         help="Output directory (default: dist)",
     )
     parser.add_argument(
-        "--cache",
-        type=str,
-        help="Font cache file (default: temp-dir/font-cache.json)",
-    )
-    parser.add_argument(
         "--font-dir",
         type=str,
         default="Fonts",
@@ -44,8 +39,7 @@ def main():
         sys.exit(1)
 
     # 处理缓存文件路径
-    if args.cache is None:
-        args.cache = _init_temp("fcache-", ".json")
+    font_cache = _create_temp_file("fcache-", ".json")
 
     # 处理字体目录
     os.makedirs(args.font_dir, exist_ok=True)
@@ -55,15 +49,9 @@ def main():
 
     # 初始化 mkvlib
     sdk.initInstance(lcb)
-    sdk.cache(args.cache)
+    sdk.cache(font_cache)
     sdk.nrename(True)
-    sdk.createFontsCache(args.font_dir, args.cache, lcb)
-
-    # 打印处理后的参数
-    print(f"Output directory: {args.output_dir}")
-    print(f"Font cache file: {args.cache}")
-    print(f"Font directory: {args.font_dir}")
-    print(f"MKV files and directories to process: {args.files}")
+    sdk.createFontsCache(args.font_dir, font_cache, lcb)
 
     # 在这里添加处理文件和目录的逻辑
     for file_or_dir in args.files:
