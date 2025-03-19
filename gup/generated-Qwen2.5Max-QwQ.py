@@ -8,11 +8,11 @@ def get_audio_tracks(file, file_index):
     result = subprocess.run(cmd, capture_output=True, text=True)
     info = json.loads(result.stdout)
     tracks = []
-    for track in info["tracks"]:
+    for idx, track in enumerate(info["tracks"]):  # 使用枚举获取顺序索引
         if track["type"] == "audio":
             codec = track["codec"]
             channels = track["properties"].get("audio_channels", 0)
-            track_id = track["id"]
+            track_id = idx  # 使用顺序索引而非原始 ID
             name = track["properties"].get("track_name", "")
             tracks.append(
                 {
@@ -32,12 +32,13 @@ def get_subtitle_tracks(file, file_index):
     result = subprocess.run(cmd, capture_output=True, text=True)
     info = json.loads(result.stdout)
     tracks = []
-    for track in info["tracks"]:
+    for idx, track in enumerate(info["tracks"]):  # 使用枚举获取顺序索引
         if track["type"] == "subtitles":
+            track_id = idx  # 使用顺序索引
             tracks.append(
                 {
                     "file_index": file_index,
-                    "track_id": track["id"],
+                    "track_id": track_id,
                     "language": track["properties"].get("language", "und"),
                     "name": track["properties"].get("track_name", ""),
                     "is_default": track["properties"].get("default_track", False),
@@ -122,6 +123,7 @@ audio_args = []
 aac_index = 0
 for track in audio_tracks:
     is_default = track == default_audio
+    # 使用文件索引和顺序索引组合
     default_flag = f"--default-track-flag {track['file_index']}:{track['track_id']}:{'yes' if is_default else 'no'}"
     name = track["name"]
     if not name:
@@ -143,6 +145,7 @@ for sub in all_subtitles:
     if "file" in sub:
         lang = sub["language"]
         name = sub["name"]
+        # 新增字幕文件使用文件索引 0（自身）
         default_flag = (
             f"--default-track-flag 0:{'yes' if sub == default_subtitle else 'no'}"
         )
@@ -151,9 +154,8 @@ for sub in all_subtitles:
         )
         subtitle_args.append(args)
     else:
-        file_index = sub["file_index"]
-        track_id = sub["track_id"]
-        default_flag = f"--default-track-flag {file_index}:{track_id}:{'yes' if sub == default_subtitle else 'no'}"
+        # 视频内字幕使用原文件索引和顺序索引
+        default_flag = f"--default-track-flag {sub['file_index']}:{sub['track_id']}:{'yes' if sub == default_subtitle else 'no'}"
         subtitle_args.append(default_flag)
 
 fonts = []
@@ -162,16 +164,42 @@ for f in os.listdir(subtitle_dir):
         fonts.append(os.path.join(subtitle_dir, f))
 attach_args = [f"--attach-file {f}" for f in fonts]
 
-command = [
-    "mkvmerge",
-    "-o",
-    output_file,
-    video_file,
-    audio_file if os.path.exists(audio_file) else "",
-    "--no-subtitles",
-    *audio_args,
-    *subtitle_args,
-    *attach_args,
-]
+# 重新组织命令参数，确保每个文件的参数紧跟文件名
+command = ["mkvmerge", "-o", output_file]
 
+# 添加视频文件及其音频参数
+command.append(video_file)
+video_audio_args = []
+for track in audio_tracks:
+    if track["file_index"] == 0:  # 属于视频文件的音频轨道
+        video_audio_args.extend(
+            [
+                f"--default-track-flag 0:{track['track_id']}:{'yes' if track == default_audio else 'no'}",
+                f"--track-name 0:{track['track_id']}:{track['name']}"
+                if track["name"]
+                else "",
+            ]
+        )
+command.extend(video_audio_args)
+
+# 添加外部音频文件及其参数
+if os.path.exists(audio_file):
+    command.append(audio_file)
+    external_audio_args = []
+    for track in audio_tracks:
+        if track["file_index"] == 1:  # 属于外部音频文件的轨道
+            external_audio_args.extend(
+                [
+                    f"--default-track-flag 1:{track['track_id']}:{'yes' if track == default_audio else 'no'}",
+                    f"--track-name 1:{track['track_id']}:{track['name']}"
+                    if track["name"]
+                    else "",
+                ]
+            )
+    command.extend(external_audio_args)
+
+# 添加字幕参数
+command.extend(["--no-subtitles", *subtitle_args, *attach_args])
+
+print(" ".join(command))
 subprocess.run(" ".join(command), shell=True)
