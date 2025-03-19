@@ -2,6 +2,9 @@ import argparse
 import os
 import tempfile
 
+from mkv_merge.logging import lcb
+from mkv_merge.mkvlib import sdk
+
 
 def main():
     parser = argparse.ArgumentParser(description="Merge mkv/mka/ass files")
@@ -11,7 +14,7 @@ def main():
         "--output-dir",
         type=str,
         default="dist",
-        help="Output directory. (default: dist)",
+        help="Output directory (default: dist)",
     )
     parser.add_argument(
         "--temp-dir",
@@ -48,6 +51,12 @@ def main():
 
     # 处理输出目录
     os.makedirs(args.output_dir, exist_ok=True)
+
+    # 初始化 mkvlib
+    sdk.initInstance(lcb)
+    sdk.cache(args.cache)
+    sdk.nrename(True)
+    sdk.createFontsCache(args.font_dir, args.cache, lcb)
 
     # 打印处理后的参数
     print(f"Output directory: {args.output_dir}")
