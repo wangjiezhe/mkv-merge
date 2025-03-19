@@ -136,7 +136,7 @@ def generate_mkvmerge_command(
     # 添加 MKA 文件（如果存在）
     if input_mka:
         if default_audio_source == "mka":
-            command.extend(["--default-track", f"0:yes"])
+            command.extend(["--default-track", "0:yes"])
         else:
             command.extend(["-a", "0", input_mka])
             command.extend(["--default-track", "0:no"])

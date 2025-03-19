@@ -2,7 +2,6 @@ import json
 import os
 import re
 import subprocess
-import sys
 from pathlib import Path
 
 
@@ -78,7 +77,6 @@ def process_files():
                 default_audio_track_id = track["id"]
 
     # 处理MKA文件(如果存在)
-    mka_tracks = []
     if os.path.exists("PV01.mka"):
         audio_info = get_track_info("PV01.mka")
         if audio_info is not None:
@@ -155,7 +153,7 @@ def process_files():
             # 设置默认轨道
             is_default = track_id == default_audio_track_id
             default_flag = "1" if is_default else "0"
-            cmd.append(f"--default-track-flag")
+            cmd.append("--default-track-flag")
             cmd.append(f"{track_id}:{default_flag}")
 
             # 设置轨道名称（如果原来没有名称）

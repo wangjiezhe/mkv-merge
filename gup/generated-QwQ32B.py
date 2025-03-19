@@ -12,7 +12,7 @@ def main():
 
     # 处理字幕
     subtitles = []
-    subtitle_files = glob.glob(os.path.join(subsetted_dir, f"PV01.*.ass"))
+    subtitle_files = glob.glob(os.path.join(subsetted_dir, "PV01.*.ass"))
     for sub_file in subtitle_files:
         base = os.path.basename(sub_file)
         parts = base.split(".")

@@ -46,7 +46,7 @@ def main():
     cmd = ["mkvmerge", "-o", output_file]
 
     # Handle video file
-    video_info = get_track_info(video_file)
+    get_track_info(video_file)
     cmd.extend([video_file])
 
     # Handle audio file if exists
@@ -94,7 +94,7 @@ def main():
     # Handle subtitle defaults
     subtitle_tracks = [t for t in output_info["tracks"] if t["type"] == "subtitles"]
     if len(subtitle_tracks) == 1:
-        prop_cmd.extend(["--edit", f"track:s1", "--set", "flag-default=1"])
+        prop_cmd.extend(["--edit", "track:s1", "--set", "flag-default=1"])
     elif len(subtitle_tracks) > 1:
         for i, track in enumerate(subtitle_tracks, 1):
             props = track["properties"]

@@ -87,7 +87,7 @@ if sub_track_ids:
                 "mkvpropedit",
                 str(output_file),
                 "--edit",
-                f"track:s1",
+                "track:s1",
                 "--set",
                 "flag-default=1",
             ]
