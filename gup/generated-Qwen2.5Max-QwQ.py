@@ -10,7 +10,8 @@ def get_audio_tracks(file, file_index):
     tracks = []
     for track in info["tracks"]:
         if track["type"] == "audio":
-            codec = track["properties"]["codec"]
+            # 修正 codec 获取位置
+            codec = track["codec"]  # 从顶层获取，而非 properties
             channels = track["properties"].get("audio_channels", 0)
             track_id = track["id"]
             name = track["properties"].get("track_name", "")
