@@ -73,3 +73,7 @@ mkvmerge -o dist/PV01_new.mkv PV01.mkv --default-track-flag 0:1:yes  --no-subtit
 对话：手动纠正 `--default-track-flag` 的用法。
 
 这回程序终于可以运行了，但是只成功加载了一个字幕，而且还是把繁体字幕当成简体字幕命名了。
+
+## 第7轮
+
+这话繁体字幕的名称对了，但是简体字幕还是没有加载上。
