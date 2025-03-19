@@ -87,46 +87,46 @@ if sub_track_ids:
                 "mkvpropedit",
                 str(output_file),
                 "--edit",
-                f"track:s{sub_track_ids[0]}",
+                f"track:s1",
                 "--set",
                 "flag-default=1",
             ]
         )
     elif len(sub_track_ids) > 1:
         # 如果有多个字幕轨道，找到第一个简体中文轨道并设为默认
-        default_sub_id = None
-        for track in track_info.get("tracks", []):
+        default_sub_index = None
+        for i, track in enumerate(track_info.get("tracks", [])):
             if (
                 track.get("type") == "subtitles"
                 and track.get("properties", {}).get("language") == "chi"
             ):
-                default_sub_id = track.get("id")
+                default_sub_index = i + 1  # 轨道序号从1开始
                 break
-        if default_sub_id:
+        if default_sub_index:
             # 设置默认轨道
-            subprocess.run(
-                [
-                    "mkvpropedit",
-                    str(output_file),
-                    "--edit",
-                    f"track:s{default_sub_id}",
-                    "--set",
-                    "flag-default=1",
-                ]
-            )
+            cmd = [
+                "mkvpropedit",
+                str(output_file),
+                "--edit",
+                f"track:s{default_sub_index}",
+                "--set",
+                "flag-default=1",
+            ]
+            print(" ".join(cmd))
+            subprocess.run(cmd)
             # 将其他字幕轨道设为非默认
-            for sub_id in sub_track_ids:
-                if sub_id != default_sub_id:
-                    subprocess.run(
-                        [
-                            "mkvpropedit",
-                            str(output_file),
-                            "--edit",
-                            f"track:s{sub_id}",
-                            "--set",
-                            "flag-default=0",
-                        ]
-                    )
+            for i in range(1, len(sub_track_ids) + 1):  # 轨道序号从1开始
+                if i != default_sub_index:
+                    cmd = [
+                        "mkvpropedit",
+                        str(output_file),
+                        "--edit",
+                        f"track:s{i}",
+                        "--set",
+                        "flag-default=0",
+                    ]
+                    print(" ".join(cmd))
+                    subprocess.run(cmd)
 
 # 重命名音频轨道
 audio_tracks = []

@@ -29,3 +29,7 @@ TypeError: unsupported operand type(s) for +: 'generator' and 'generator'
 对话：要求合并后单独修改默认字幕轨道。
 
 问题还是没有解决。
+
+# 第8/9轮
+
+对话，更正字幕轨道设置。
