@@ -6,6 +6,9 @@ readme = "README.md"
 requires-python = ">=3.10"
 dependencies = ["hatchling"]
 
+[project.scripts]
+mkv-merge = "mkv_merge.main:main"
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
@@ -23,6 +26,4 @@ exclude = ["third-party"]
 exclude = ["third-party"]
 
 [dependency-groups]
-dev = [
-    "colorama>=0.4.6",
-]
+dev = ["colorama>=0.4.6"]
