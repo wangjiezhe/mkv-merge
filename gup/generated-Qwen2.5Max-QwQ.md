@@ -67,3 +67,9 @@ mkvmerge -o dist/PV01_new.mkv PV01.mkv --default-track-flag 0:1:yes  --no-subtit
 
 不过，根据mkvmerge的文档，当处理多个输入文件时，轨道ID需要加上文件索引，格式为FileID:TrackID 。例如，如果音频来自第一个文件（file_index=0）的轨道ID为1，则参数应为0:1:yes。但错误提示显示用户使用的是0:1:yes，却仍然报错，这可能意味着参数的格式有其他问题。
 ```
+
+## 第6轮
+
+对话：手动纠正 `--default-track-flag` 的用法。
+
+这回程序终于可以运行了，但是只成功加载了一个字幕，而且还是把繁体字幕当成简体字幕命名了。
