@@ -59,7 +59,6 @@ for f in os.listdir(subtitle_dir):
 new_subtitles = []
 for f in subtitle_files:
     base = os.path.splitext(os.path.basename(f))[0]
-    # 修正文件名解析逻辑：直接取第二个部分作为语言代码
     code = base.split(".")[1].lower() if "." in base else ""
     lang = "und"
     name = "简体中文"
@@ -69,20 +68,13 @@ for f in subtitle_files:
     elif code in ["ja"]:
         lang = "jpn"
         name = "日语"
-    elif code in ["sc"]:
+    elif code == "sc":
         lang = "zho"
         name = "简体中文"
-    elif code in ["tc"]:
+    elif code == "tc":
         lang = "zho"
         name = "繁体中文"
-    new_subtitles.append(
-        {
-            "file": f,
-            "language": lang,
-            "name": name,
-            "code": code,  # 保留原始代码用于调试
-        }
-    )
+    new_subtitles.append({"file": f, "language": lang, "name": name, "code": code})
 
 video_subtitles = get_subtitle_tracks(video_file)
 all_subtitles = video_subtitles.copy()
@@ -101,16 +93,12 @@ if len(all_subtitles) == 1:
     default_subtitle = all_subtitles[0]
 else:
     sc_non_comment = [
-        s
-        for s in all_subtitles
-        if s.get("language") == "zho"
-        and s.get("code") in ["sc"]  # 确保是简体中文非评论
-        and not s.get("name", "") == "监督评论"
+        s for s in all_subtitles if s.get("language") == "zho" and s.get("code") == "sc"
     ]
     if sc_non_comment:
         default_subtitle = sc_non_comment[0]
     else:
-        non_comment = [s for s in all_subtitles if not s.get("name", "") == "监督评论"]
+        non_comment = [s for s in all_subtitles if s.get("code") not in ["comment"]]
         if non_comment:
             default_subtitle = non_comment[0]
 
@@ -146,23 +134,23 @@ if os.path.exists(audio_file):
 # 处理字幕
 command.append("--no-subtitles")
 
-for sub in all_subtitles:
-    if "file" in sub and sub["file"] != video_file:
-        # 处理外部字幕文件
-        lang = sub["language"]
-        name = sub["name"]
-        default = "yes" if sub == default_subtitle else "no"
-        command.extend(
-            [
-                "--language",
-                f"0:{lang}",
-                "--track-name",
-                f"0:{name}",
-                "--default-track-flag",
-                f"0:{default}",
-                sub["file"],
-            ]
-        )
+# 单独处理每个外部字幕文件
+for sub in new_subtitles:
+    lang = sub["language"]
+    name = sub["name"]
+    default = "yes" if sub == default_subtitle else "no"
+    # 每个外部字幕文件作为独立源文件处理
+    command.extend(
+        [
+            "--language",
+            "0:{}".format(lang),
+            "--track-name",
+            "0:{}".format(name),
+            "--default-track-flag",
+            "0:{}".format(default),
+            sub["file"],
+        ]
+    )
 
 # 添加字体附件
 fonts = [

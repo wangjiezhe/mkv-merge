@@ -77,3 +77,7 @@ mkvmerge -o dist/PV01_new.mkv PV01.mkv --default-track-flag 0:1:yes  --no-subtit
 ## 第7轮
 
 这话繁体字幕的名称对了，但是简体字幕还是没有加载上。
+
+## 第8轮
+
+和上一轮的结果是一样的。
