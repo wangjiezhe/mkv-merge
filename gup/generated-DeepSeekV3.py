@@ -1,3 +1,4 @@
+import json
 import os
 import subprocess
 from pathlib import Path
@@ -73,34 +74,32 @@ print(" ".join(command))
 subprocess.run(command)
 
 
+# 使用mkvmerge -J获取文件信息
+def get_track_info(mkv_file):
+    """使用mkvmerge -J获取轨道信息"""
+    info_command = ["mkvmerge", "-J", str(mkv_file)]
+    result = subprocess.run(info_command, capture_output=True, text=True)
+    return json.loads(result.stdout)
+
+
+track_info = get_track_info(output_file)
+
 # 重命名音频轨道
-def get_audio_track_info(mkv_file):
-    """使用mkvinfo获取音频轨道信息"""
-    info_command = ["mkvinfo", str(mkv_file)]
-    info_output = subprocess.run(info_command, capture_output=True, text=True).stdout
-    audio_tracks = []
-    current_track = None
-    for line in info_output.splitlines():
-        if "Track type: audio" in line:
-            if current_track:
-                audio_tracks.append(current_track)
-            current_track = {"index": len(audio_tracks) + 1}
-        elif "Track number:" in line and current_track:
-            current_track["index"] = int(line.split(":")[1].strip().split(" ")[0])
-        elif "Name:" in line and current_track:
-            current_track["name"] = line.split(":")[1].strip()
-        elif "Channels:" in line and current_track:
-            current_track["channels"] = int(line.split(":")[1].strip())
-    if current_track:
-        audio_tracks.append(current_track)
-    return audio_tracks
-
-
-audio_tracks = get_audio_track_info(output_file)
+audio_tracks = []
+for track in track_info.get("tracks", []):
+    if track.get("type") == "audio":
+        audio_tracks.append(
+            {
+                "id": track.get("id"),
+                "codec": track.get("codec"),
+                "channels": track.get("properties", {}).get("audio_channels", 0),
+                "name": track.get("properties", {}).get("track_name"),
+            }
+        )
 
 # 重命名FLAC音频轨道
 for track in audio_tracks:
-    if "name" not in track:
+    if not track.get("name"):
         channels = track.get("channels", 0)
         if channels == 2:
             track_name = "2ch"
@@ -114,15 +113,18 @@ for track in audio_tracks:
             "mkvpropedit",
             str(output_file),
             "--edit",
-            f"track:a{track['index']}",
+            f"track:a{track['id']}",
             "--set",
             f"name={track_name}",
         ]
-        print(" ".join(command))
         subprocess.run(command)
 
 # 重命名AAC音频轨道
-aac_tracks = [track for track in audio_tracks if "name" not in track]
+aac_tracks = [
+    track
+    for track in audio_tracks
+    if track.get("codec") == "AAC" and not track.get("name")
+]
 for i, track in enumerate(aac_tracks):
     if i == 0:
         track_name = "声优评论"
@@ -136,9 +138,8 @@ for i, track in enumerate(aac_tracks):
         "mkvpropedit",
         str(output_file),
         "--edit",
-        f"track:a{track['index']}",
+        f"track:a{track['id']}",
         "--set",
         f"name={track_name}",
     ]
-    print(" ".join(command))
     subprocess.run(command)
