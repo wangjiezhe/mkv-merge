@@ -25,20 +25,20 @@ for sub_file in subtitles_dir.glob("PV01.*.ass"):
     lang_code = sub_file.stem.split(".")[1]
     if lang_code == "comment":
         track_name = "监督评论"
-        lang = "und"
+        lang = "zh-CN"
     else:
         if lang_code in ["sc", "SC"]:
-            lang = "chi"
+            lang = "zh-CN"
             track_name = "简体中文"
         elif lang_code in ["tc", "TC"]:
-            lang = "chi"
+            lang = "zh-TW"
             track_name = "繁体中文"
         elif lang_code == "ja":
             lang = "jpn"
             track_name = "日文"
         else:
-            lang = "chi"
-            track_name = "简体中文"
+            lang = "und"
+            track_name = "未知语言"
     command.extend(
         ["--track-name", f"0:{track_name}", "--language", f"0:{lang}", str(sub_file)]
     )
@@ -100,7 +100,10 @@ if sub_track_ids:
             for track in track_info.get("tracks", [])
             if track.get("type") == "subtitles"
         ):
-            if track.get("properties", {}).get("language") == "chi":
+            if (
+                track.get("properties", {}).get("language") == "chi"
+                and track.get("properties", {}).get("language_ietf") == "zh-CN"
+            ):
                 default_sub_index = i + 1  # 轨道序号从1开始
                 break
         if default_sub_index:
