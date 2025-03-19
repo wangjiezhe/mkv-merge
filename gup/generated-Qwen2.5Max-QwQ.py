@@ -34,28 +34,28 @@ output_file = "dist/PV01_new.mkv"
 # 构建命令
 command = ["mkvmerge", "-o", output_file]
 
-# 添加视频文件及其参数
+# 1. 添加视频文件及其参数
 command.append(video_file)
-# 添加视频内音频轨道参数（如果有）
 video_audio_tracks = get_audio_tracks(video_file)
 for track in video_audio_tracks:
+    # 视频文件的音频参数紧跟在视频文件名之后
     command.append(
         f"--default-track-flag {track['track_id']}:{'yes' if track['channels'] >= 2 else 'no'}"
     )
 
-# 添加外部音频文件及其参数（如果存在）
+# 2. 添加外部音频文件及其参数（如果存在）
 if os.path.exists(audio_file):
-    command.append(audio_file)
+    command.append(audio_file)  # 先添加文件名
     external_audio_tracks = get_audio_tracks(audio_file)
     for track in external_audio_tracks:
+        # 外部音频参数紧跟在音频文件名之后
         command.append(
             f"--default-track-flag {track['track_id']}:{'yes' if track['channels'] >= 2 else 'no'}"
         )
 
-# 添加外部字幕文件
+# 3. 添加外部字幕文件（每个文件独立参数组）
 command.append("--no-subtitles")  # 禁用源文件字幕
 
-# 处理外部字幕文件
 for f in os.listdir(subtitle_dir):
     if f.startswith("PV01.") and f.endswith(".ass"):
         # 解析语言代码
@@ -63,9 +63,12 @@ for f in os.listdir(subtitle_dir):
         code = base.split(".")[1].lower() if "." in base else ""
         lang = "und"
         name = "简体中文"
+        default = "no"
+
         if code == "sc":
             lang = "zho"
             name = "简体中文"
+            default = "yes"
         elif code == "tc":
             lang = "zho"
             name = "繁体中文"
@@ -73,7 +76,7 @@ for f in os.listdir(subtitle_dir):
             lang = "und"
             name = "监督评论"
 
-        # 添加字幕参数（每个文件独立）
+        # 添加字幕参数（每个文件独立，参数紧跟文件名）
         command.extend(
             [
                 "--language",
@@ -81,16 +84,15 @@ for f in os.listdir(subtitle_dir):
                 "--track-name",
                 "0:{}".format(name),
                 "--default-track-flag",
-                "0:{}".format("yes" if code == "sc" else "no"),
+                "0:{}".format(default),
                 os.path.join(subtitle_dir, f),
             ]
         )
 
-# 添加字体附件
+# 4. 添加字体附件
 for f in os.listdir(subtitle_dir):
     if f.lower().endswith((".otf", ".ttf", ".ttc")):
         command.append(f"--attach-file {os.path.join(subtitle_dir, f)}")
 
 # 执行命令
-print(" ".join(command))
 subprocess.run(" ".join(command), shell=True)
