@@ -22,15 +22,15 @@ if os.path.exists(audio_file):
 
 # 添加字幕文件
 for sub_file in subtitles_dir.glob("PV01.*.ass"):
-    lang_code = sub_file.stem.split(".")[1]
+    lang_code = sub_file.stem.split(".")[1].lower()
     if lang_code == "comment":
         track_name = "监督评论"
         lang = "zh-CN"
     else:
-        if lang_code in ["sc", "SC"]:
+        if lang_code in ["sc", "chs"]:
             lang = "zh-CN"
             track_name = "简体中文"
-        elif lang_code in ["tc", "TC"]:
+        elif lang_code in ["tc", "cht"]:
             lang = "zh-TW"
             track_name = "繁体中文"
         elif lang_code == "ja":

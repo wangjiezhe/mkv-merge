@@ -25,9 +25,9 @@ def process_subtitle_language(filename):
         return "zh-CN", "监督评论"
     elif lang_part == "ja":
         return "ja", "日本語"
-    elif lang_part == "sc":
+    elif lang_part in ["sc", "chs"]:
         return "zh-CN", "简体中文"
-    elif lang_part == "tc":
+    elif lang_part in ["tc", "cht"]:
         return "zh-TW", "繁體中文"
     else:
         raise ValueError(f"{lang_part} 语言暂时无法处理")
