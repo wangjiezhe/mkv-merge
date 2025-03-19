@@ -60,7 +60,7 @@ def main():
         elif os.path.isdir(file_or_dir):
             print(f"Processing directory: {file_or_dir}")
         else:
-            print(f"Invalid path: {file_or_dir}")
+            raise ValueError(f"Invalid path: {file_or_dir}")
 
 
 if __name__ == "__main__":

@@ -71,42 +71,43 @@ def create_mkv(video_file: str, output_dir: str, font_dir: str):
         )
     )
 
-    # Sort subtitle files based on language preference
-    language_order = ["日本語", "简体中文", "繁體中文", "监督评论"]
-    subtitle_files.sort(
-        key=lambda f: language_order.index(process_subtitle_language(f.name)[1])
-        if process_subtitle_language(f.name)[1] in language_order
-        else len(language_order)
-    )
+    if subtitle_files:
+        # Sort subtitle files based on language preference
+        language_order = ["日本語", "简体中文", "繁體中文", "监督评论"]
+        subtitle_files.sort(
+            key=lambda f: language_order.index(process_subtitle_language(f.name)[1])
+            if process_subtitle_language(f.name)[1] in language_order
+            else len(language_order)
+        )
 
-    # 子集化字体
-    is_success = sdk.assFontSubset(
-        [ass.as_posix() for ass in subtitle_files],
-        font_dir,
-        subsetted_dir,
-        False,
-        lcb,
-    )
-    if not is_success:
-        raise RuntimeError("Font subset failed.")
+        # 子集化字体
+        is_success = sdk.assFontSubset(
+            [ass.as_posix() for ass in subtitle_files],
+            font_dir,
+            subsetted_dir,
+            False,
+            lcb,
+        )
+        if not is_success:
+            raise RuntimeError("Font subset failed.")
 
-    for sub_file in subtitle_files:
-        lang_code, track_name = process_subtitle_language(sub_file.name)
-        cmd.extend(["--language", f"0:{lang_code}", "--sub-charset", "0:UTF-8"])
-        cmd.extend(["--track-name", f"0:{track_name}"])
-        cmd.append(sub_file.as_posix())
+        for sub_file in subtitle_files:
+            lang_code, track_name = process_subtitle_language(sub_file.name)
+            cmd.extend(["--language", f"0:{lang_code}", "--sub-charset", "0:UTF-8"])
+            cmd.extend(["--track-name", f"0:{track_name}"])
+            cmd.append(sub_file.as_posix())
 
-    # Handle fonts
-    font_files = [
-        f
-        for f in os.listdir(subsetted_dir)
-        if f.lower().endswith((".otf", ".ttf", ".ttc"))
-    ]
-    if font_files:
-        cmd.append("--attachment-mime-type")
-        cmd.append("application/x-truetype-font")
-        for font in font_files:
-            cmd.extend(["--attach-file", os.path.join(subsetted_dir, font)])
+        # Handle fonts
+        font_files = [
+            f
+            for f in os.listdir(subsetted_dir)
+            if f.lower().endswith((".otf", ".ttf", ".ttc"))
+        ]
+        if font_files:
+            cmd.append("--attachment-mime-type")
+            cmd.append("application/x-truetype-font")
+            for font in font_files:
+                cmd.extend(["--attach-file", os.path.join(subsetted_dir, font)])
 
     # Execute mkvmerge
     print(" ".join(cmd))
