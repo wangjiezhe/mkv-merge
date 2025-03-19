@@ -35,7 +35,6 @@ output_file = "dist/PV01_new.mkv"
 command = ["mkvmerge", "-o", output_file]
 
 # 1. 添加视频文件及其参数
-command.append(video_file)
 video_audio_tracks = get_audio_tracks(video_file)
 for track in video_audio_tracks:
     # 视频文件的音频参数紧跟在视频文件名之后
@@ -43,9 +42,10 @@ for track in video_audio_tracks:
         f"--default-track-flag {track['track_id']}:{'yes' if track['channels'] >= 2 else 'no'}"
     )
 
+command.append(video_file)
+
 # 2. 添加外部音频文件及其参数（如果存在）
 if os.path.exists(audio_file):
-    command.append(audio_file)  # 先添加文件名
     external_audio_tracks = get_audio_tracks(audio_file)
     for track in external_audio_tracks:
         # 外部音频参数紧跟在音频文件名之后
@@ -53,8 +53,10 @@ if os.path.exists(audio_file):
             f"--default-track-flag {track['track_id']}:{'yes' if track['channels'] >= 2 else 'no'}"
         )
 
+    command.append(audio_file)  # 先添加文件名
+
 # 3. 添加外部字幕文件（每个文件独立参数组）
-command.append("--no-subtitles")  # 禁用源文件字幕
+# command.append("--no-subtitles")  # 禁用源文件字幕
 
 for f in os.listdir(subtitle_dir):
     if f.startswith("PV01.") and f.endswith(".ass"):
@@ -95,4 +97,5 @@ for f in os.listdir(subtitle_dir):
         command.append(f"--attach-file {os.path.join(subtitle_dir, f)}")
 
 # 执行命令
+print(" ".join(command))
 subprocess.run(" ".join(command), shell=True)
