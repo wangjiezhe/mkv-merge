@@ -54,7 +54,7 @@ def main():
     if os.path.exists(audio_file):
         audio_info = get_track_info(audio_file)
         audio_tracks.extend(audio_info["tracks"])
-        cmd.extend(["+", audio_file])
+        cmd.extend([audio_file])
 
     # Handle subtitles
     subtitle_files = [
