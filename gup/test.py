@@ -54,10 +54,25 @@ logging.addLevelName(SWARNING, "SWARNING")
 logging.addLevelName(PROGRESS, "PROGRESS")
 
 
+def get_ass_files(mkv_file: str) -> list:
+    mkv_path = Path(mkv_file)
+    mkv_filename = mkv_path.stem
+    directory_path = mkv_path.parent
+
+    ass_files = [
+        file
+        for file in directory_path.glob("*")
+        if file.is_file()
+        and file.name.startswith(mkv_filename)
+        and file.suffix == ".ass"
+    ]
+
+    return [str(file) for file in ass_files]
+
+
 # 测试文件
 mkv_file = "PV01.mkv"
-ass_file_sc = "PV01.SC.ass"
-ass_file_tc = "PV01.TC.ass"
+ass_files = get_ass_files(mkv_file)
 font_dir = "Fonts"
 sample_font = "A-OTF-Jun501Pro-Bold.otf"
 font_cache = "fcache.json"
@@ -108,25 +123,23 @@ def test():
         raise ValueError(f"查询子集化出错: {mkv_file}")
     print()
 
-    print(f"{ass_file_sc} 和 {ass_file_tc} 中用到的字体:")
-    need_fonts, failed_fonts = sdk.getFontsList(
-        [ass_file_sc, ass_file_tc], font_dir, lcb
-    )
+    print(f"{ass_files} 中用到的字体:")
+    need_fonts, failed_fonts = sdk.getFontsList(ass_files, font_dir, lcb)
     pprint(need_fonts)
     if failed_fonts:
         print("找不到以下字体:")
         pprint(failed_fonts)
     print()
 
-    res = sdk.copyFontsFromCache([ass_file_sc, ass_file_tc], out_dir, lcb)
-    if res:
-        print(f"成功为 {ass_file_sc} 和 {ass_file_tc} 导出所需字体")
-    else:
-        print("导出字体失败！")
+    # res = sdk.copyFontsFromCache(ass_files, out_dir, lcb)
+    # if res:
+    #     print(f"成功为 {ass_files} 导出所需字体")
+    # else:
+    #     print("导出字体失败！")
 
-    res = sdk.assFontSubset([ass_file_sc, ass_file_tc], font_dir, out_dir, True, lcb)
+    res = sdk.assFontSubset(ass_files, font_dir, out_dir, True, lcb)
     if res:
-        print(f"成功为 {ass_file_sc} 和 {ass_file_tc} 导出子集化字体")
+        print(f"成功为 {ass_files} 导出子集化字体")
     else:
         print("子集化字体失败！")
 
