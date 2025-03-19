@@ -5,7 +5,7 @@ from itertools import chain
 from pathlib import Path
 
 # 定义输入文件和输出目录
-video_file = "PV01.mkv"
+video_file = "S01E01.mkv"
 audio_file = Path(video_file).with_suffix(".mka").as_posix()
 subtitles_dir = Path("dist/subsetted")
 output_dir = Path("dist")
@@ -22,7 +22,9 @@ if os.path.exists(audio_file):
     command.append(str(audio_file))
 
 # 添加字幕文件
-for sub_file in chain(subtitles_dir.glob("PV01.ass"), subtitles_dir.glob("PV01.*.ass")):
+for sub_file in chain(
+    subtitles_dir.glob("S01E01.ass"), subtitles_dir.glob("S01E01.*.ass")
+):
     lang_code = sub_file.stem.split(".")[1].lower()
     if lang_code == "comment":
         track_name = "监督评论"

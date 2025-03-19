@@ -34,9 +34,9 @@ def process_subtitle_language(filename):
 
 
 def main():
-    video_file = "PV01.mkv"
-    audio_file = "PV01.mka"
-    output_file = "dist/PV01.mkv"
+    video_file = "S01E01.mkv"
+    audio_file = "S01E01.mka"
+    output_file = "dist/S01E01.mkv"
     subtitle_dir = "dist/subsetted"
 
     # Create dist directory if it doesn't exist
@@ -60,7 +60,7 @@ def main():
     subtitle_files = [
         f
         for f in os.listdir(subtitle_dir)
-        if f.startswith("PV01") and f.endswith(".ass")
+        if f.startswith("S01E01") and f.endswith(".ass")
     ]
     font_files = [
         f

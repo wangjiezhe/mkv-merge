@@ -71,7 +71,7 @@ def get_ass_files(mkv_file: str) -> list:
 
 
 # 测试文件
-mkv_file = "PV01.mkv"
+mkv_file = "S01E01.mkv"
 ass_files = get_ass_files(mkv_file)
 font_dir = "Fonts"
 sample_font = "A-OTF-Jun501Pro-Bold.otf"
