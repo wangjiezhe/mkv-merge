@@ -1,6 +1,7 @@
 import json
 import os
 import subprocess
+from itertools import chain
 from pathlib import Path
 
 # 定义输入文件和输出目录
@@ -21,7 +22,7 @@ if os.path.exists(audio_file):
     command.append(str(audio_file))
 
 # 添加字幕文件
-for sub_file in subtitles_dir.glob("PV01.*.ass"):
+for sub_file in chain(subtitles_dir.glob("PV01.ass"), subtitles_dir.glob("PV01.*.ass")):
     lang_code = sub_file.stem.split(".")[1].lower()
     if lang_code == "comment":
         track_name = "监督评论"
@@ -147,7 +148,7 @@ for track in track_info.get("tracks", []):
 
 # 重命名FLAC音频轨道
 for track in audio_tracks:
-    if not track.get("name"):
+    if track.get("codec") == "FLAC" and not track.get("name"):
         channels = track.get("channels", 0)
         if channels == 2:
             track_name = "2ch"
