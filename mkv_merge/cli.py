@@ -2,10 +2,12 @@ import argparse
 import os
 import sys
 import tempfile
+import traceback
 
 from mkv_merge.create import create_mkv
 from mkv_merge.logging import lcb
 from mkv_merge.mkvlib import sdk
+from mkv_merge.process import process_mkvs
 
 
 def _create_temp_file(prefix, suffix):
@@ -53,16 +55,21 @@ def main():
     sdk.nrename(True)
     sdk.createFontsCache(args.font_dir, font_cache, lcb)
 
-    # 在这里添加处理文件和目录的逻辑
-    for file_or_dir in args.files:
-        if os.path.isfile(file_or_dir) and file_or_dir.split(".")[-1] == "mkv":
-            create_mkv(file_or_dir, args.output_dir, args.font_dir)
-        elif os.path.isdir(file_or_dir):
-            print(f"Processing directory: {file_or_dir}")
-        else:
-            raise ValueError(f"Invalid path: {file_or_dir}")
-
-    os.remove(font_cache)
+    try:
+        # 在这里添加处理文件和目录的逻辑
+        for file_or_dir in args.files:
+            if os.path.isfile(file_or_dir) and file_or_dir.split(".")[-1] == "mkv":
+                create_mkv(file_or_dir, args.output_dir, args.font_dir)
+            elif os.path.isdir(file_or_dir):
+                process_mkvs(file_or_dir, args.output_dir, args.font_dir)
+            else:
+                raise ValueError(f"Invalid path: {file_or_dir}")
+    except RuntimeError:
+        traceback.print_exc()
+        print()
+        parser.print_help()
+    finally:
+        os.remove(font_cache)
 
 
 if __name__ == "__main__":
