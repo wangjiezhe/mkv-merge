@@ -1,9 +1,9 @@
 import json
 import os
+import re
 import shutil
 import subprocess
 import tempfile
-from itertools import chain
 from pathlib import Path
 from typing import Tuple
 
@@ -54,7 +54,6 @@ def create_mkv(
     cmd = ["mkvmerge", "-o", output_file]
 
     # Handle video file
-    get_track_info(video_file)
     cmd.extend([video_file])
 
     # Handle audio file if exists
@@ -67,25 +66,21 @@ def create_mkv(
     # Handle subtitles
     video_stem = Path(video_file).stem
     video_dir = Path(video_file).parent
-    subtitle_files = list(
-        chain(
-            video_dir.glob(f"{video_stem}.ass"),
-            video_dir.glob(f"{video_stem}.*.ass"),
-        )
-    )
+    ass_pattern = re.compile(rf"{re.escape(video_stem)}(\.\w+)?.ass")
+    subtitle_files = [ass for ass in os.listdir(video_dir) if ass_pattern.match(ass)]
 
     if subtitle_files:
         # Sort subtitle files based on language preference
         language_order = ["日本語", "简体中文", "繁體中文", "监督评论"]
         subtitle_files.sort(
-            key=lambda f: language_order.index(process_subtitle_language(f.name)[1])
-            if process_subtitle_language(f.name)[1] in language_order
+            key=lambda f: language_order.index(process_subtitle_language(f)[1])
+            if process_subtitle_language(f)[1] in language_order
             else len(language_order)
         )
 
         # 子集化字体
         is_success = sdk.assFontSubset(
-            [ass.as_posix() for ass in subtitle_files],
+            [os.path.join(video_dir, ass) for ass in subtitle_files],
             font_dir,
             subsetted_dir,
             False,
@@ -95,10 +90,10 @@ def create_mkv(
             raise RuntimeError("Font subset failed.")
 
         for sub_file in subtitle_files:
-            lang_code, track_name = process_subtitle_language(sub_file.name)
+            lang_code, track_name = process_subtitle_language(sub_file)
             cmd.extend(["--language", f"0:{lang_code}", "--sub-charset", "0:UTF-8"])
             cmd.extend(["--track-name", f"0:{track_name}"])
-            cmd.append(sub_file.as_posix())
+            cmd.append(os.path.join(video_dir, sub_file))
 
         # Handle fonts
         font_files = [
