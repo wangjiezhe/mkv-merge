@@ -13,7 +13,7 @@ from mkv_merge.mkvlib import sdk
 
 def get_track_info(file_path: str):
     result = subprocess.run(
-        ["mkvmerge", "-J", file_path], capture_output=True, text=True
+        ["mkvmerge", "-J", file_path], capture_output=True, text=True, encoding="utf-8"
     )
     return json.loads(result.stdout)
 
