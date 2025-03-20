@@ -160,7 +160,7 @@ def create_mkv(
                     elif channels == 6:
                         name = "5.1ch"
                     prop_cmd.extend(["--edit", f"track:a{i}", "--set", f"name={name}"])
-                elif "aac" in codec:
+                else:
                     aac_count += 1
                     if aac_count == 1:
                         name = "声优评论"
