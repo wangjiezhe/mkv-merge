@@ -21,16 +21,24 @@ def main():
 
     # 添加命令行参数
     parser.add_argument(
+        "-o",
         "--output-dir",
         type=str,
         default="dist",
         help="Output directory (default: dist)",
     )
     parser.add_argument(
+        "-f",
         "--font-dir",
         type=str,
         default="Fonts",
         help="Font directory (default: Fonts)",
+    )
+    parser.add_argument(
+        "-n",
+        "--disable-overwrite",
+        action="store_true",
+        help="Disable file overwrite",
     )
     parser.add_argument("files", nargs="*", help="MKV files or directories")
 
@@ -53,6 +61,7 @@ def main():
     sdk.initInstance(lcb)
     sdk.cache(font_cache)
     sdk.nrename(True)
+    sdk.noverwrite(args.disable_overwrite)  # FIXME: 不起作用？
     sdk.createFontsCache(args.font_dir, font_cache, lcb)
 
     try:
