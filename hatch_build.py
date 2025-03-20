@@ -1,3 +1,5 @@
+import os
+import platform
 import subprocess
 from pathlib import Path
 
@@ -16,8 +18,15 @@ class CustomHook(BuildHookInterface):
         )
 
     def build_mkvlib(self):
-        script_path = Path("scripts/build_mkvlib.sh")
-        if script_path.exists():
+        if platform.system() == "Linux":
+            script_path = Path("scripts/build_mkvlib.sh")
             subprocess.run([str(script_path)], check=True)
+        elif platform.system() == "Windows":
+            script_path = Path("scripts/build_mkvlib.ps1")
+            subprocess.run(["powershell", "-File", str(script_path)], check=True)
         else:
-            raise FileNotFoundError(f"Build script not found: {script_path}")
+            mkvlib_path = Path("mkv_merge/mkvlib/mkvlib.so")
+            if not os.path.exists(mkvlib_path):
+                raise RuntimeError(
+                    "mkvlib.so not found. Please manually compile mkvlib.so and put it in mkv_merge/mkvlib."
+                )

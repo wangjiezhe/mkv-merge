@@ -1,6 +1,3 @@
-#!/root/mkv-merge/.venv/bin/python
-
-
 import logging
 from pathlib import Path
 from pprint import pprint

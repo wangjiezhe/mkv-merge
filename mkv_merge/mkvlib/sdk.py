@@ -1,6 +1,11 @@
 import os
+import platform
 from ctypes import CDLL, CFUNCTYPE, c_char_p, c_ubyte
 from json import dumps, loads
+
+if platform.system == "Windows":
+    # 使用 go 和 mingw64-gcc 生成的库文件，依赖 libgcc_s_seh-1.dll
+    os.add_dll_directory("C:/tools/msys64/mingw64/bin")
 
 libpath = os.path.join(os.path.dirname(__file__), "mkvlib.so")
 lib = CDLL(libpath)
