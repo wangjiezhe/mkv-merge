@@ -4,7 +4,7 @@ set -e
 CGO_CFLAGS="$(pkg-config --cflags libass libpng16) -DHB_EXPERIMENTAL_API"
 CGO_LDFLAGS="-lass -lfreetype -lm -lz -lfontconfig -lpng -lfribidi -lharfbuzz -lharfbuzz-subset -lexpat"
 
-DEBUG=true
+DEBUG=false
 if $DEBUG; then
   CGO_CFLAGS="${CGO_CFLAGS} -Og"
   DEBUG_CFLAGS=-gcflags="all=-N -l"
@@ -24,7 +24,7 @@ cd mkvlib/sdk || exit 1
 mkdir -p "${ROOT_PATH}/mkv_merge/mkvlib"
 
 go mod tidy
-go build -ldflags "${LDFLAGS}" -buildmode c-shared "${DEBUG_CFLAGS}" -o "${ROOT_PATH}/mkv_merge/mkvlib/mkvlib.so" &&
+go build -o "${ROOT_PATH}/mkv_merge/mkvlib/mkvlib.so" -ldflags "${LDFLAGS}" -buildmode c-shared "${DEBUG_CFLAGS}" &&
   rm "${ROOT_PATH}/mkv_merge/mkvlib/mkvlib.h" &&
   chmod +x "${ROOT_PATH}/mkv_merge/mkvlib/mkvlib.so"
 
