@@ -40,7 +40,7 @@ def process_subtitle_language(filename: str) -> Tuple[str, str]:
     elif lang_part in ["tc", "cht"]:
         return "zh-TW", "繁體中文"
     else:
-        return "und", "未知语言"
+        return "zh-CN", "简体中文"
 
 
 def create_mkv(
